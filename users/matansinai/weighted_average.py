@@ -1,4 +1,5 @@
 from typing import List
+import numpy as np
 
 
 def compute_weighted_average(x: List[float],
@@ -6,7 +7,7 @@ def compute_weighted_average(x: List[float],
     try:
         return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
     except ZeroDivisionError:
-        return 0
+        return np.nan
 
 def check_compute_weighted_average(x:List[float],
                                    w:List[float])-> float:
