@@ -1,16 +1,15 @@
 from typing import List
+import numpy as np
 
 
 def compute_weighted_average(x: List[float],
                              w: List[float])-> float:
-    return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
+    return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w) if sum(w) !=0 else np.nan
 
 def check_compute_weighted_average(x:List[float],
                                    w:List[float])-> float:
-    try:
-        answer = compute_weighted_average(x, w)
-    except ZeroDivisionError:
-        answer = 0
+    answer = compute_weighted_average(x, w)
+
     print(f"The weighted average of {x} with weights {w} is {answer}")
     return answer
 
