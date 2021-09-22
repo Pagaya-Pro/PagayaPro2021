@@ -5,8 +5,8 @@ def compute_weighted_average(x: List[float],
                              w: List[float])-> float:
     try:
         return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
-    except:
-        return 0
+    except ZeroDivisionError:
+        return None
 
 def check_compute_weighted_average(x:List[float],
                                    w:List[float])-> float:
