@@ -1,14 +1,14 @@
 import pandas as pd
+import os
+from pagayapro.paths.project_paths import MODELS_PATH
 
 class PPCC21Model:
     def __init__(self):
         import pickle
-        import s3fs
-        self.model = pickle.load(s3fs.S3FileSystem().open("s3://pagaya-pro-source/models/PPCC21.sav", 'rb'))
+        self.model = pickle.load(open(os.path.join(MODELS_PATH,"PPCC21.sav"),
+                                      'rb'))
         self.columns = (
-            pd.read_parquet(
-                "s3://pagaya-pro-source/models/"
-                "fcs.parquet").fcs.values
+            pd.read_parquet(os.path.join(MODELS_PATH,"fcs.parquet")).fcs.values
         )
         
     def fit(self, X, y):
