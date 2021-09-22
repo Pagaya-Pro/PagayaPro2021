@@ -2,15 +2,15 @@ from typing import List
 
 
 def compute_weighted_average(x: List[float], w: List[float])-> float:
-	if sum(w) == 0:
-		w = [1]
 	return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
 def check_compute_weighted_average(x:List[float], w:List[float])-> float:
+	ans = 0
 	if sum(w) == 0:
-        	w = [1]
-	ans = compute_weighted_average(x, w)
-	print(f"The weighted average of {x} with weights {w} is {ans}")
+		print(f"The weighted average of {x} with weights {w} can't be computed since computation creates logic error (sum of weights equals 0)")
+	else:
+		ans = compute_weighted_average(x, w)
+		print(f"The weighted average of {x} with weights {w} is {ans}")
 	return ans
 
 def main():
