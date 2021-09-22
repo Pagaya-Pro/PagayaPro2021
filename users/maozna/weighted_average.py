@@ -8,11 +8,11 @@ def compute_weighted_average(x: List[float],
 def check_compute_weighted_average(x:List[float],
                                    w:List[float])-> float:
     try:
-        ans = compute_weighted_average(x, w)
+        answer = compute_weighted_average(x, w)
     except ZeroDivisionError:
-        ans = 0
-    print(f"The weighted average of {x} with weights {w} is {ans}")
-    return ans
+        answer = 0
+    print(f"The weighted average of {x} with weights {w} is {answer}")
+    return answer
 
 def main():
     check_compute_weighted_average([1,2,3],[4,5,6])
