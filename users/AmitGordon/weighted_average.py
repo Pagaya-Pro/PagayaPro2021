@@ -6,7 +6,7 @@ def compute_weighted_average(x: List[float],
     if sum(w) != 0:
         return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
     else:
-        return 0
+        return None
 def check_compute_weighted_average(x:List[float],
                                    w:List[float])-> float:
     ans = compute_weighted_average(x, w)
