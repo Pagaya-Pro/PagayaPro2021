@@ -1,13 +1,7 @@
 from typing import List
 
-import numpy as np
-
-
 def compute_weighted_average(x: List[float],
                              w: List[float])-> float:
-    if sum(w) == 0:
-        return np.NAN
-    else:
         return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
 def check_compute_weighted_average(x:List[float],
