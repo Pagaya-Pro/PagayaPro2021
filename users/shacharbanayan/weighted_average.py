@@ -2,7 +2,11 @@ from typing import List
 
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
-    return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w) if sum(w) != 0 else 0.0
+    try:
+        return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
+    except:
+        print("weights sum up to 0 so weighted average can't be calculated")
+        return
 
 
 def check_compute_weighted_average(x:List[float],
