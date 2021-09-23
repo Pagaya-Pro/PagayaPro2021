@@ -17,6 +17,8 @@ class BestBotInGalaxy(Player):
         return our_planets
 
     def get_future_ships(self, planet, time):
+        if planet.owner == 0:
+            return planet.num_ships
         return planet.growth_rate * time + planet.num_ships
 
     def calc_ships_needed(self, game, fleet, time_our_fleet_arrivres):
@@ -31,7 +33,9 @@ class BestBotInGalaxy(Player):
                 needed = fleet.num_ships - self.get_future_ships(dest_planet, fleet.turns_remaining) + 1
             else:
                 needed = 1000000   #high number that will not be sent.
-
+        if needed <= 0:
+            needed = 1000000
+        return needed
 
 
     def place_order(self, game, fleet, available_ships):
@@ -40,7 +44,7 @@ class BestBotInGalaxy(Player):
             dist = Planet.distance_between_planets(planet, game.get_planet_by_id(fleet.destination_planet_id)) + 1
             needed = self.calc_ships_needed(game, fleet, dist)
             if needed <= available_ships[planet.planet_id]:
-                available_ships -= needed
+                available_ships[planet.planet_id] -= needed
                 return Order(planet, game.get_planet_by_id(fleet.destination_planet_id), needed)
 
     def check_duplicates(self, game, enemy_fleet):
@@ -56,7 +60,9 @@ class BestBotInGalaxy(Player):
         orders = []
         for fleet in game.get_fleets_by_owner(owner=game.ENEMY):
             if self.check_duplicates(game, fleet) == False:
-                orders.append(self.place_order(game, fleet, available_ships))
+                tmp = self.place_order(game, fleet, available_ships)
+                if tmp:
+                    orders.append(tmp)
         return orders
 
 
@@ -158,7 +164,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(AttackWeakestPlanetFromStrongestBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(BestBotInGalaxy(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), map_str)
 
 
 def test_bot():
@@ -172,7 +178,8 @@ def test_bot():
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
+            #AttackEnemyWeakestPlanetFromStrongestBot()
+            AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
         ],
         maps=maps
     )
