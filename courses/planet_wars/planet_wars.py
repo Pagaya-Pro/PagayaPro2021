@@ -140,7 +140,7 @@ class PlanetWars:
         return list_to_data_frame(
             lst=self.fleets,
             columns=[
-                "owner", "num_ships", "source_planet", "destination_planet", "total_trip_length", "turns_remaining"
+                "owner", "num_ships", "source_planet_id", "destination_planet_id", "total_trip_length", "turns_remaining"
             ]
         )
 
