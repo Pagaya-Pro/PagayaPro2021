@@ -5,6 +5,7 @@ from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 
 import pandas as pd
+from courses.planet_wars.competition import PLAYER_BOTS
 
 
 class AttackWeakestPlanetFromStrongestBot(Player):
@@ -90,13 +91,105 @@ class PowerPuff(Player):
     def __init__(self):
         self.turns_until_end = 200
 
-    def get_planet_score(self, planet, dis):
-        score = planet.growth_rate * (self.turns_until_end - dis) - planet.num_ships
+    def whos_planet(self, planet, enemy_fleets, my_fleets):
+        """
+        :param planet: a planet object
+        :param enemy_fleets: a list of enemy fleet objects
+        :param my_fleets:  a list of my fleet objects
+        :return:
+        """
+        # Retreive only fleets flying towards relevant planet
+        enemy_fleets = [fleet for fleet in enemy_fleets if fleet.destination_planet_id == planet.planet_id]
+        enemy_fleets = sorted(enemy_fleets, key=lambda f: f.turns_remaining)
+
+        my_fleets = [fleet for fleet in my_fleets if fleet.destination_planet_id == planet.planet_id]
+        my_fleets = sorted(my_fleets, key=lambda f: f.turns_remaining)
+
+        all_fleets = sorted(enemy_fleets + my_fleets, key=lambda f: f.turns_remaining)
+
+        cur_ships = planet.num_ships
+        cur_ownership = planet.owner
+
+        # Edge case
+        if len(all_fleets) == 0:
+            return 0, cur_ownership
+        if len(all_fleets) == 1:
+            cur_ships = cur_ships - all_fleets[0].num_ships
+            if cur_ships < 0:
+                cur_ownership = all_fleets[0].owner
+            return all_fleets[0].num_ships, cur_ownership
+
+        cur_turn = 0
+        idx = 0
+        """
+        Dealing with neutral planets
+        """
+        if cur_ownership == PlanetWars.NEUTRAL:  # neutral
+            for idx, f in enumerate(all_fleets):
+                cur_turn = f.turns_remaining
+                cur_ships -= f.num_ships
+                if cur_ships < 0:
+                    cur_ownership = f.owner
+                    cur_ships = -cur_ships
+                    # Reached the end of all fleets
+                    if idx == len(all_fleets) - 1:
+                        return planet.num_ships - cur_ships, cur_ownership
+                    break
+
+        if idx == 0:
+            if all_fleets[idx].owner == cur_ownership:
+                cur_ships += all_fleets[0].num_ships
+            else:
+                cur_ships -= all_fleets[0].num_ships
+            if cur_ships < 0:
+                cur_ownership = all_fleets[0].owner
+
+        # Ownership is of enemy or myself
+        while idx + 1 < len(all_fleets):
+            # Planet switched from neutral to enemy or was enemy from the beggining
+            if cur_ownership == PlanetWars.ENEMY:
+                idx += 1
+                f = all_fleets[idx]
+                if f.owner == PlanetWars.ENEMY:  # Reinforcing
+                    cur_ships = cur_ships + f.num_ships + (
+                                planet.growth_rate * (f.turns_remaining - all_fleets[idx - 1].turns_remaining))
+                else:  # Im attacking
+                    cur_ships = cur_ships - f.num_ships + (
+                                planet.growth_rate * (f.turns_remaining - all_fleets[idx - 1].turns_remaining))
+                    if cur_ships < 0:
+                        cur_ownership == PlanetWars.ME
+                        cur_ships = -cur_ships
+            else:
+                idx += 1
+                f = all_fleets[idx]
+                if f.owner == PlanetWars.ME:  # Reinforcing
+                    cur_ships = cur_ships + f.num_ships + (
+                                planet.growth_rate * (f.turns_remaining - all_fleets[idx - 1].turns_remaining))
+                else:  # Im attacking
+                    cur_ships = cur_ships - f.num_ships + (
+                                planet.growth_rate * (f.turns_remaining - all_fleets[idx - 1].turns_remaining))
+                    if cur_ships < 0:
+                        cur_ownership == PlanetWars.ENEMY
+                        cur_ships = -cur_ships
+        return planet.num_ships - cur_ships, cur_ownership
+
+    def get_planet_score(self, game: PlanetWars, planet, dis):
+        enemy_fleets = game.get_fleets_by_owner(owner=PlanetWars.ENEMY)
+        my_fleets = game.get_fleets_by_owner(owner=PlanetWars.ME)
+        planet_after_fleets = self.whos_planet(planet, enemy_fleets, my_fleets)
+        if planet_after_fleets[1] == PlanetWars.ME:
+            planet_after_fleets_score = -planet_after_fleets[0]
+        else:
+            planet_after_fleets_score = planet_after_fleets[0]
+
         if planet.owner == PlanetWars.NEUTRAL:
+            score = (planet.growth_rate * self.turns_until_end) - planet.num_ships - planet_after_fleets_score
             return score
         elif planet.owner == PlanetWars.ENEMY:
-            return 1.25 * (score - dis * planet.growth_rate)
-        return -1 * score
+            score = planet.growth_rate * (self.turns_until_end - dis) - planet.num_ships - planet_after_fleets_score
+            return score
+        score = planet.growth_rate * (self.turns_until_end - dis) - planet.num_ships - planet_after_fleets_score
+        return -score
 
     def get_lst_scores(self, game: PlanetWars):
         dic_scores = {}
@@ -105,7 +198,7 @@ class PowerPuff(Player):
             source = None
             for my_planet in game.get_planets_by_owner(owner=PlanetWars.ME):
                 dis = Planet.distance_between_planets(planet, my_planet)
-                temp_score = self.get_planet_score(planet, dis)
+                temp_score = self.get_planet_score(game,planet, dis)
                 if temp_score > score:
                     score = temp_score
                     source = my_planet
@@ -121,25 +214,28 @@ class PowerPuff(Player):
         self.turns_until_end -= 1
         score_dict = self.get_lst_scores(game)
         # Dict is empty
-        if len(score_dict) == 0:
-            return []
+
 
         # Sort Dictionary
-        score_dict = dict(sorted(score_dict.items(), key=lambda item: item[1][0], reverse=True))
+        #score_dict = dict(sorted(score_dict.items(), key=lambda item: item[0], reverse=True))
+        keylist = sorted(score_dict.keys(), key=lambda x: score_dict[x][0], reverse=True)
+        score_dict = {k: score_dict[k] for k in keylist}
 
         order_counter = 0
         order_list = []
-        first_attack = next(iter(score_dict))
-        for dest_planet, tup in score_dict.items():
-            num_ships = dest_planet.num_ships + 1
-            if dest_planet.owner == PlanetWars.ENEMY:
-                num_ships = dest_planet.num_ships + dest_planet.growth_rate*Planet.distance_between_planets(dest_planet, tup[1])
-            if tup[0] > 0 and num_ships < tup[1].num_ships:
-                ships = dest_planet.num_ships + 1
-                order_list.append(Order(source_planet=tup[1].planet_id,destination_planet=dest_planet.planet_id,num_ships=ships))
-                order_counter += 1
-            elif order_counter == 3:
-                break
+        try:
+            for dest_planet, tup in score_dict.items():
+                owner = self.whos_planet(dest_planet,game.get_fleets_by_owner(PlanetWars.ENEMY),game.get_fleets_by_owner(PlanetWars.ME))[1]
+                if owner == PlanetWars.ME:
+                    continue
+                num_ships = dest_planet.num_ships + 1
+                if dest_planet.owner == PlanetWars.ENEMY:
+                    num_ships += dest_planet.growth_rate*Planet.distance_between_planets(dest_planet, tup[1])
+                if num_ships <= tup[1].num_ships:
+                    order_list.append(Order(source_planet=tup[1].planet_id,destination_planet=dest_planet.planet_id, num_ships=tup[1].num_ships))
+                    order_counter += 1
+        except:
+            return []
         return order_list
 
 
@@ -162,7 +258,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), PowerPuff(), map_str)
+    run_and_view_battle(AttackEnemyWeakestPlanetFromStrongestBot(), PowerPuff(), map_str)
 
 
 def test_bot():
@@ -172,12 +268,12 @@ def test_bot():
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = AttackWeakestPlanetFromStrongestBot()
+    player_bot_to_test = PowerPuff()
     tester = TestBot(
         player=player_bot_to_test,
-        competitors=[
-            AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
-        ],
+        competitors=PLAYER_BOTS[2:5],
+        #     AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
+        # ],
         maps=maps
     )
     tester.run_tournament()
@@ -191,9 +287,9 @@ def test_bot():
     print(tester.get_score_object())
 
     # To view battle number 4 uncomment the line below
-    # tester.view_battle(4)
+    #tester.view_battle(4)
 
 
 if __name__ == "__main__":
-    #test_bot()
-    view_bots_battle()
+    test_bot()
+    #view_bots_battle()
