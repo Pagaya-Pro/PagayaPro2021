@@ -5,6 +5,7 @@ from courses.planet_wars.player_bots.kong_fu_pandas.baseline_bot import KongFuSy
 from courses.planet_wars.player_bots.rocket_league.baseline_bot import rocket_league_bot
 from courses.planet_wars.player_bots.rubber_ducks.Bot1 import Bot1
 from courses.planet_wars.player_bots.space_pirates.baseline_bot import Firstroundstrategy
+from courses.planet_wars.player_bots.the_princesses.princesses_bot import PrincessesBot
 from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderTheHoodBot
 from courses.planet_wars.tournament import Tournament, get_map_by_id
 import warnings
@@ -17,7 +18,7 @@ from courses.planet_wars.player_bots.the_powerpuff_girls.baseline_bot import Pow
 # Insert Your bot object here, as BotObject(). Don't forget to set BotObject.NAME to your team name
 PLAYER_BOTS = [
     Firstroundstrategy(), NerdBot(), Bot1(), EnderBot(), rocket_league_bot(), UnderTheHoodBot(),
-    KongFuSyrianPandas(), BestBotInGalaxy(), spaceNinjas(), BestBot(), PowerPuff(),
+    KongFuSyrianPandas(), BestBotInGalaxy(), spaceNinjas(), BestBot(), PowerPuff(), PrincessesBot(),
 ]
 
 ROUND1_MAP = """P 13 13 0 36 4
