@@ -122,15 +122,25 @@ class BestBotInGalaxy(Player):
         return False
 
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
-        our_planets = game.get_planets_by_owner(owner=game.ME)
-        available_ships = {x.planet_id: x.num_ships for x in our_planets}
-        orders = []
-        for fleet in game.get_fleets_by_owner(owner=game.ENEMY):
-            if fleet.turns_remaining == fleet.total_trip_length - 1:
-                #if self.check_duplicates(game, fleet) == False:
-                tmp = self.place_order(game, fleet, available_ships)
-                if tmp:
-                    orders.append(tmp)
+        if game.turns < 25:
+            orders = []
+            for planet in game.get_planets_by_owner(owner=game.ME):
+                sorted_other_planets = sorted(game.get_planets_by_owner(owner=0), key=lambda x: Planet.distance_between_planets(x, planet))
+                for i in range(len(sorted_other_planets)):
+                    if sorted_other_planets[i].planet_id not in [x.destination_planet_id for x in game.get_fleets_by_owner(owner=game.ME)]:
+                        if sorted_other_planets[i].num_ships+1 <= planet.num_ships:
+                            orders.append(Order(planet,sorted_other_planets[i],sorted_other_planets[i].num_ships+1))
+        else:
+            our_planets = game.get_planets_by_owner(owner=game.ME)
+            available_ships = {x.planet_id: x.num_ships for x in our_planets}
+            orders = []
+            for fleet in game.get_fleets_by_owner(owner=game.ENEMY):
+             if fleet.turns_remaining == fleet.total_trip_length - 1:
+                    #if self.check_duplicates(game, fleet) == False:
+                    tmp = self.place_order(game, fleet, available_ships)
+                    if tmp:
+                        orders.append(tmp)
+
         return orders
 
 
