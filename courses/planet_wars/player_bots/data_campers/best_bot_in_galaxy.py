@@ -41,7 +41,7 @@ class BestBotInGalaxy(Player):
     def place_order(self, game, fleet, available_ships):
         planet_list = self.get_ordered_planets(game, fleet.destination_planet_id)
         for planet in planet_list:
-            dist = Planet.distance_between_planets(planet, game.get_planet_by_id(fleet.destination_planet_id)) + 1
+            dist = Planet.distance_between_planets(planet, game.get_planet_by_id(fleet.destination_planet_id)) + 2
             needed = self.calc_ships_needed(game, fleet, dist)
             if needed <= available_ships[planet.planet_id]:
                 available_ships[planet.planet_id] -= needed
@@ -164,7 +164,8 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(BestBotInGalaxy(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), map_str)
+    #run_and_view_battle(BestBotInGalaxy(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), map_str)
+    run_and_view_battle(BestBotInGalaxy(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
 
 
 def test_bot():
@@ -178,7 +179,7 @@ def test_bot():
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            #AttackEnemyWeakestPlanetFromStrongestBot()
+            AttackEnemyWeakestPlanetFromStrongestBot(),
             AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
         ],
         maps=maps
