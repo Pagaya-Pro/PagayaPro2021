@@ -107,24 +107,18 @@ class BestBot(Player):
         self.opponent_growth = sum([planet.growth_rate for planet in opponent_planets])
     '''
 
-    def ships_to_send_in_a_flee(self, source_planet_lst, dest_planet_lst) -> int:
-        res = []
-        for i in range(len(source_planet_lst)):
-            if dest_planet_lst[i].owner == 0:
-                enemy_planet = dest_planet_lst[i].num_ships
-                if (source_planet_lst[i].num_ships > enemy_planet):
-                    res.append(enemy_planet + 1)
-                    continue
-                res.append(0)
-                continue
-            if dest_planet_lst[i].owner == 2:
-                on_arrival = dest_planet_lst[i].num_ships + Planet.distance_between_planets(source_planet_lst[i],
-                                                                                 dest_planet_lst[i]) * dest_planet_lst[i].growth_rate
-                if source_planet_lst[i].num_ships > on_arrival + 2:
-                    res.append(on_arrival)
-                    continue
-            res.append(0)
-        return res
+    def ships_to_send_in_a_flee(self, source_planet, dest_planet) -> int:
+        if dest_planet.owner == 0:
+            enemy_planet = dest_planet.num_ships
+            if (source_planet.num_ships > enemy_planet):
+                return enemy_planet + 1
+            return 0
+        if dest_planet.owner == 2:
+            on_arrival = dest_planet.num_ships + Planet.distance_between_planets(source_planet,
+                                                                             dest_planet) * dest_planet.growth_rate
+            if source_planet.num_ships > on_arrival + 2:
+                return on_arrival + 2
+        return 0
 
     def get_planets_to_attack(self, game: PlanetWars) -> List[Planet]:
         """
@@ -132,9 +126,9 @@ class BestBot(Player):
         :return: The planets we need to attack
         """
         possible_planets = [p for p in game.planets if p.owner != PlanetWars.ME]
-        possible_planets = sorted(possible_planets, key=lambda x: x.owner, reverse=True)
+        possible_planets_ordered = sorted(possible_planets, key=lambda x: x.owner, reverse=True)
         fleets_omw = game.get_fleets_by_owner(game.ME)
-        planets_omw = [f.destination_planet_id for f in fleets_omw]
+        planets_omw = [fleet.destination_planet_id for fleet in fleets_omw]
         ans = []
         for planet in possible_planets:
             if planet.planet_id not in planets_omw:
@@ -173,6 +167,18 @@ class BestBot(Player):
 
         return res
 
+    def match_fights(self, our_planets: List[Planet], target_plants: List[Planet]):
+        res = []
+        for origin_plant in our_planets:
+            possible_planets_est = [[planet, planet.num_ships] for planet in target_plants]
+            for planet_est in possible_planets_est:
+                planet_est[1] += 2*Planet.distance_between_planets(origin_plant, planet_est[0])
+            min_planet = min(possible_planets_est, key=lambda x: x[1])
+            if min_planet[1] < origin_plant.num_ships:
+                res.append([origin_plant, min_planet[0]])
+
+        return res
+
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
 
         self.game = game
@@ -181,29 +187,28 @@ class BestBot(Player):
         if len(game.get_fleets_data_frame()) > 0:
             res += self.stealing_neutral_planets(game)
 
-        # (2) Find my strongest planet.
         my_planets = game.get_planets_by_owner(owner=PlanetWars.ME)
         planets_to_attack = self.get_planets_to_attack(game)
+
+        # (2) Find my strongest planets.
         if len(my_planets) == 0:
             return []
-        my_strongest_planet = sorted(my_planets, key=lambda planet: planet.num_ships, reverse=True)[:min(3,len(my_planets),len(planets_to_attack))]
+        my_strongest_planet = sorted(my_planets, key=lambda planet: planet.num_ships, reverse=True)
 
-        # (3) Find the weakest enemy or neutral planet.
+        # (3) Find the weakest enemies or neutral planet.
         if len(planets_to_attack) == 0:
             return []
-        enemy_or_neutral_weakest_planet = sorted(planets_to_attack, key=lambda planet: planet.num_ships)[:min(3,len(my_planets),len(planets_to_attack))]
+        enemy_or_neutral_weakest_planet = sorted(planets_to_attack, key=lambda planet: planet.num_ships)
 
-        how_many = self.ships_to_send_in_a_flee(my_strongest_planet, enemy_or_neutral_weakest_planet)
-        if len(how_many) == 0:
-            return []
+        matching_attack = self.match_fights(my_strongest_planet, enemy_or_neutral_weakest_planet)
 
-        res += [Order(
-            my_strongest_planet[i],
-            enemy_or_neutral_weakest_planet[i],
-            how_many[i]
-        ) for i in range(min(3,len(my_planets),len(planets_to_attack)))]
+        for match in matching_attack:
+            how_many = self.ships_to_send_in_a_flee(match[0], match[1])
+            if how_many == 0:
+                continue
+            res += [Order(
+                match[0], match[1], how_many)]
 
-        # (4) Send half the ships from my strongest planet to the weakest planet that I do not own.
         return res
 
 
@@ -237,8 +242,8 @@ def test_bot():
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), NerdBot(),
-            EnderBot(), rocket_league_bot(), UnderTheHoodBot(), KongFuSyrianPandas(), BestBotInGalaxy()
+            NerdBot(), EnderBot(), rocket_league_bot(), UnderTheHoodBot(),
+            KongFuSyrianPandas(), BestBotInGalaxy()
         ],
         maps=maps
     )
