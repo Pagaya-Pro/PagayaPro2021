@@ -3,7 +3,6 @@ from typing import Iterable, List
 
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
-from courses.planet_wars.competition import PLAYER_BOTS
 
 import pandas as pd
 
@@ -423,7 +422,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(PLAYER_BOTS[3], SmartSendBot(), map_str)
+    # run_and_view_battle(PLAYER_BOTS[3], SmartSendBot(), map_str)
 
 
 def test_bot():
