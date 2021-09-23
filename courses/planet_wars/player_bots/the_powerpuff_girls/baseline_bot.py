@@ -5,7 +5,6 @@ from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 
 import pandas as pd
-from courses.planet_wars.competition import PLAYER_BOTS
 
 
 class AttackWeakestPlanetFromStrongestBot(Player):
@@ -271,9 +270,10 @@ def test_bot():
     player_bot_to_test = PowerPuff()
     tester = TestBot(
         player=player_bot_to_test,
-        competitors=PLAYER_BOTS[2:5],
+        # competitors=PLAYER_BOTS[2:5],
         #     AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
         # ],
+        competitors=[],
         maps=maps
     )
     tester.run_tournament()
