@@ -7,10 +7,7 @@ from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, T
 from courses.planet_wars.player_bots.data_campers.best_bot_in_galaxy import BestBotInGalaxy
 from courses.planet_wars.player_bots.the_princesses.princesses_bot import PrincessesBot
 from courses.planet_wars.player_bots.ender.EnderBot import EnderBot
-from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
 from courses.planet_wars.player_bots.rocket_league.baseline_bot import rocket_league_bot
-# from courses.planet_wars.player_bots.rubber_ducks.Bot1 import Bot1
-from courses.planet_wars.player_bots.kong_fu_pandas.original_bot import KongFuSyrianPandasOriginal
 from courses.planet_wars.player_bots.space_pirates.baseline_bot import Firstroundstrategy
 from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderTheHoodBot
 from courses.planet_wars.tournament import Tournament, get_map_by_id
@@ -421,7 +418,6 @@ def test_bot():
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            KongFuSyrianPandasOriginal(),NerdBot(),
             EnderBot(), rocket_league_bot(), UnderTheHoodBot(),
             BestBotInGalaxy(),PrincessesBot()
         ],
@@ -442,5 +438,5 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    # test_bot()
-    view_bots_battle()
+    test_bot()
+    # view_bots_battle()
