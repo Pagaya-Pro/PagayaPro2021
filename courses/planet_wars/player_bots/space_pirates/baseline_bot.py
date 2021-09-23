@@ -9,6 +9,8 @@ import pandas as pd
 class Firstroundstrategy(Player):
     EXTRA = 1
     TURNS = 0
+    NAME="space_pirates"
+
 
     def get_planets_to_attack(self, game: PlanetWars) -> List[Planet]:
         """
