@@ -68,8 +68,8 @@ class DontBeMean(Player):
             orders+= self.defense(new_fleets_attacking_me, dists, my_planets_ids, planet_df, game)
 
         #attack
-        orders += self.attack_enemy(planet_df, center_planet, game, 3, 3)
-        orders += self.attack_neutral(planet_df, center_planet, game, 1, 1)
+        orders += self.attack_enemy(planet_df, center_planet, game, 3, 6)
+        orders += self.attack_neutral(planet_df, center_planet, game, 2, 6)
         return orders
 
     def attack_enemy(self, planet_df, center,game, num_attack, num_attackers):
