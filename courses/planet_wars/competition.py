@@ -1,9 +1,16 @@
+from courses.planet_wars.player_bots.ender.EnderBot import EnderBot
+from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
+from courses.planet_wars.player_bots.rocket_league.baseline_bot import rocket_league_bot
+from courses.planet_wars.player_bots.space_pirates.baseline_bot import Firstroundstrategy
+from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderTheHoodBot
 from courses.planet_wars.tournament import Tournament, get_map_by_id
 import warnings
 import pandas as pd
 
 # Insert Your bot object here, as BotObject(). Don't forget to set BotObject.NAME to your team name
-PLAYER_BOTS = [NerdBot()]
+PLAYER_BOTS = [
+    Firstroundstrategy(), NerdBot(), Bot1(), EnderBot(), rocket_league_bot(), UnderTheHoodBot(),
+]
 
 if __name__ == '__main__':
     # Display options
