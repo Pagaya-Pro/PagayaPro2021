@@ -83,6 +83,7 @@ class FirstBot(Player):
 
         return orders
 
+<<<<<<< HEAD
 class StrongGrowthBot(Player):
 
     @staticmethod
@@ -240,6 +241,24 @@ class SmartSendBot(Player):
         # maybe later Todo: attack enemy by groups of our planets
 
         return orders
+=======
+class StrongGrowthBot(FirstBot):
+
+    @staticmethod
+    def set_rates(otherPlanetsDF, planet, game):
+        growth_weight = 30
+        ships_weight = 1
+        dist_weight = 10
+
+        planetsDF = otherPlanetsDF.copy()
+        # print(planetsDF.apply(lambda x: FirstBot.get_distance_by_DF(planet, x['planet_id'], game), axis=1))
+        planetsDF['dist'] = planetsDF.apply(lambda x: FirstBot.get_distance_by_DF(planet, x['planet_id'], game), axis=1)
+        planetsDF['reqships'] = planetsDF.apply(lambda x: FirstBot.set_num_ships(x), axis = 1)
+        #planetsDF = planetsDF[planetsDF['reqships'] < planet.num_ships]
+        planetsDF['rank'] = planetsDF['growth_rate'] * growth_weight - planetsDF['reqships'] * ships_weight - planetsDF['dist'] * dist_weight
+        return planetsDF
+
+>>>>>>> 8da0290784fbbfc6288210aeac43a68e5f50c0ea
 
 
 class AttackWeakestPlanetFromStrongestBot(Player):
@@ -339,7 +358,11 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
+<<<<<<< HEAD
     run_and_view_battle(PLAYER_BOTS[3], SmartSendBot(), map_str)
+=======
+    run_and_view_battle(StrongGrowthBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+>>>>>>> 8da0290784fbbfc6288210aeac43a68e5f50c0ea
 
 
 def test_bot():
