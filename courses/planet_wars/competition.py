@@ -3,7 +3,7 @@ import warnings
 import pandas as pd
 
 # Insert Your bot object here, as BotObject(). Don't forget to set BotObject.NAME to your team name
-PLAYER_BOTS = []
+PLAYER_BOTS = [NerdBot()]
 
 if __name__ == '__main__':
     # Display options

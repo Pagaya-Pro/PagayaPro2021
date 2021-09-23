@@ -1,10 +1,104 @@
 import random
 from typing import Iterable, List
+from operator import itemgetter
+import math
 
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 
 import pandas as pd
+
+
+class NerdBot(Player):
+
+    NAME = "Fun With Flags"
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+
+        try:
+            planet_scores = self.get_planet_score(game)
+            our_planet_scores = [i for i in planet_scores if i[0].owner == 1]
+            str_plts_num = math.ceil(len(our_planet_scores) * 0.3)
+            str_plts = self.get_str_plts(our_planet_scores, str_plts_num)
+
+            order_list = []
+            cur_max_index = -1
+            cur_max = planet_scores[cur_max_index][0]
+            total = self.sum_ships(str_plts)
+            cur_need = cur_max.num_ships + 10
+            while(total >= cur_need):
+
+                while(cur_need):
+                    source = self.dis_list(str_plts, cur_max)
+                    if cur_need >= str_plts[source][1]:
+                        order = Order(str_plts[source][0], cur_max, str_plts[source][1])
+                        total -= str_plts[source][1]
+                        cur_need -= str_plts[source][1]
+                        str_plts.pop(source)
+                    else:
+                        order = Order(str_plts[source][0], cur_max, cur_need)
+                        total -= cur_need
+                        str_plts[source][1] -= cur_need
+                    order_list.append(order)
+                cur_max_index -= 1
+                cur_max = planet_scores[cur_max_index][0]
+                cur_need = cur_max.num_ships + 10
+
+            return order_list
+
+
+        except:
+            return []
+
+    def dis_list(self, str_plts, planet):
+        min = Planet.distance_between_planets(str_plts[0][0], planet)
+        p = 0
+        for i in range(1, len(str_plts)):
+            if Planet.distance_between_planets(str_plts[i][0], planet) < min:
+                min = Planet.distance_between_planets(str_plts[i][0], planet)
+                p = i
+        return p
+
+    def sum_ships(self, str_plts):
+        sum = 0
+        for p in str_plts:
+            sum += p[1]
+        return sum
+
+    def get_planet_score(self, game):
+        planet_scores = []
+        for planet in game.planets:
+            deno = planet.num_ships
+            if planet.owner == 1:
+                for fleet in game.fleets:
+                    if fleet.destination_planet_id == planet.planet_id:
+                        if fleet.owner == 1:
+                            deno += fleet.num_ships
+                        else:
+                            deno -= fleet.num_ships
+            else:
+                for fleet in game.fleets:
+                    if fleet.destination_planet_id == planet.planet_id:
+                        if fleet.owner == 1:
+                            deno -= fleet.num_ships
+                        else:
+                            deno += fleet.num_ships
+            if deno == 0:
+                deno = 1
+            if planet.owner == 0:
+                deno *= 2
+            score = abs(planet.growth_rate / deno)
+            planet_scores.append([planet, score])
+
+        planet_scores = sorted(planet_scores, key = itemgetter(1))
+        return planet_scores
+
+    def get_str_plts(self, our_planets, num):
+        str_plts = []
+        for i in range(num):
+            str_plts.append([our_planets[i][0], our_planets[i][0].num_ships // 2])
+        return str_plts
+
 
 
 class AttackWeakestPlanetFromStrongestBot(Player):
@@ -114,7 +208,7 @@ def test_bot():
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = AttackWeakestPlanetFromStrongestBot()
+    player_bot_to_test = NerdBot()
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
@@ -133,9 +227,9 @@ def test_bot():
     print(tester.get_score_object())
 
     # To view battle number 4 uncomment the line below
-    # tester.view_battle(4)
+    tester.view_battle(4)
 
 
 if __name__ == "__main__":
     test_bot()
-    view_bots_battle()
+    #view_bots_battle()
