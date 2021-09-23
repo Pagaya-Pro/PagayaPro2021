@@ -1,3 +1,10 @@
+from courses.planet_wars.player_bots.data_campers.best_bot_in_galaxy import BestBotInGalaxy
+from courses.planet_wars.player_bots.ender.EnderBot import EnderBot
+from courses.planet_wars.player_bots.kong_fu_pandas.baseline_bot import KongFuSyrianPandas
+from courses.planet_wars.player_bots.rocket_league.baseline_bot import rocket_league_bot
+from courses.planet_wars.player_bots.rubber_ducks.Bot1 import Bot1
+from courses.planet_wars.player_bots.space_pirates.baseline_bot import Firstroundstrategy
+from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderTheHoodBot
 import random
 from typing import Iterable, List
 from operator import itemgetter
@@ -16,6 +23,13 @@ class NerdBot(Player):
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
 
         try:
+            if game.turns == 0:
+                home = game.get_planets_by_owner(1)
+                neutrals  = game.get_planets_by_owner(0)
+                closest = self.dis_home(neutrals, home[0])
+                if closest.num_ships + 10 <= home[0].num_ships // 2:
+                    return [Order(home[0], closest, closest.num_ships + 10)]
+
             planet_scores = self.get_planet_score(game)
             our_planet_scores = [i for i in planet_scores if i[0].owner == 1]
             str_plts_num = math.ceil(len(our_planet_scores) * 0.3)
@@ -25,10 +39,10 @@ class NerdBot(Player):
             cur_max_index = -1
             cur_max = planet_scores[cur_max_index][0]
             total = self.sum_ships(str_plts)
-            cur_need = cur_max.num_ships + 10
-            while(total >= cur_need):
+            cur_need = cur_max.num_ships + 25
+            while(total):
 
-                while(cur_need):
+                while(cur_need and (total >= cur_need)):
                     source = self.dis_list(str_plts, cur_max)
                     if cur_need >= str_plts[source][1]:
                         order = Order(str_plts[source][0], cur_max, str_plts[source][1])
@@ -42,12 +56,14 @@ class NerdBot(Player):
                     order_list.append(order)
                 cur_max_index -= 1
                 cur_max = planet_scores[cur_max_index][0]
-                cur_need = cur_max.num_ships + 10
-
+                cur_need = cur_max.num_ships + 25
+                if cur_max_index == -len(planet_scores) // 3:
+                    break
             return order_list
 
 
         except:
+            print("error")
             return []
 
     def dis_list(self, str_plts, planet):
@@ -57,6 +73,15 @@ class NerdBot(Player):
             if Planet.distance_between_planets(str_plts[i][0], planet) < min:
                 min = Planet.distance_between_planets(str_plts[i][0], planet)
                 p = i
+        return p
+
+    def dis_home(self, list, planet):
+        min = Planet.distance_between_planets(list[0], planet)
+        p = list[0]
+        for i in range(1, len(list)):
+            if Planet.distance_between_planets(list[i], planet) < min:
+                min = Planet.distance_between_planets(list[i], planet)
+                p = list[i]
         return p
 
     def sum_ships(self, str_plts):
@@ -86,10 +111,11 @@ class NerdBot(Player):
             if deno == 0:
                 deno = 1
             if planet.owner == 0:
-                deno *= 2
+                deno *= 4
+            if planet.owner == 1:
+                deno *= 4
             score = abs(planet.growth_rate / deno)
             planet_scores.append([planet, score])
-
         planet_scores = sorted(planet_scores, key = itemgetter(1))
         return planet_scores
 
@@ -98,6 +124,7 @@ class NerdBot(Player):
         for i in range(num):
             str_plts.append([our_planets[i][0], our_planets[i][0].num_ships // 2])
         return str_plts
+
 
 
 
@@ -212,8 +239,10 @@ def test_bot():
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
-        ],
+
+    EnderBot(), rocket_league_bot(), UnderTheHoodBot(),
+    KongFuSyrianPandas(), BestBotInGalaxy()
+],
         maps=maps
     )
     tester.run_tournament()
@@ -227,7 +256,8 @@ def test_bot():
     print(tester.get_score_object())
 
     # To view battle number 4 uncomment the line below
-    tester.view_battle(4)
+    #for i in range(1,13):
+    #tester.view_battle(5)
 
 
 if __name__ == "__main__":

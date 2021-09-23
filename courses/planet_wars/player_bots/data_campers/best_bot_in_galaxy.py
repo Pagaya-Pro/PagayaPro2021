@@ -5,18 +5,67 @@ from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 
 import pandas as pd
-from courses.planet_wars.player_bots.the_princesses.princesses_bot import PrincessesBot
-from courses.planet_wars.player_bots.data_campers.best_bot_in_galaxy import BestBotInGalaxy
-from courses.planet_wars.player_bots.ender.EnderBot import EnderBot
-from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
-from courses.planet_wars.player_bots.kong_fu_pandas.baseline_bot import KongFuSyrianPandas
-from courses.planet_wars.player_bots.rocket_league.baseline_bot import rocket_league_bot
-from courses.planet_wars.player_bots.rubber_ducks.Bot1 import Bot1
-from courses.planet_wars.player_bots.space_pirates.baseline_bot import Firstroundstrategy
-from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderTheHoodBot
-from courses.planet_wars.tournament import Tournament, get_map_by_id
-import warnings
-import pandas as pd
+
+
+class BestBotInGalaxy(Player):
+    NAME = "data_campers"
+
+    def get_ordered_planets(self, game, target_planet_id):
+        #The planets this function gets are in IDs
+        our_planets = game.get_planets_by_owner(owner=game.ME)
+        our_planets = sorted(our_planets, key=lambda x: Planet.distance_between_planets(x, game.get_planet_by_id(target_planet_id)))
+        return our_planets
+
+    def get_future_ships(self, planet, time):
+        if planet.owner == 0:
+            return planet.num_ships
+        return planet.growth_rate * time + planet.num_ships
+
+    def calc_ships_needed(self, game, fleet, time_our_fleet_arrivres):
+        dest_planet = game.get_planet_by_id(fleet.destination_planet_id)
+        incoming_ships = fleet.num_ships
+        if fleet.turns_remaining < time_our_fleet_arrivres and dest_planet.owner != game.ENEMY:
+            aftermath = incoming_ships - self.get_future_ships(dest_planet, fleet.turns_remaining)
+            ribit = dest_planet.growth_rate * (time_our_fleet_arrivres - fleet.turns_remaining + 1)
+            needed = aftermath + ribit + 1
+        else:
+            if dest_planet.owner == game.ME:
+                needed = fleet.num_ships - self.get_future_ships(dest_planet, fleet.turns_remaining) + 1
+            else:
+                needed = 1000000   #high number that will not be sent.
+        if needed <= 0:
+            needed = 1000000
+        return needed
+
+
+    def place_order(self, game, fleet, available_ships):
+        planet_list = self.get_ordered_planets(game, fleet.destination_planet_id)
+        for planet in planet_list:
+            dist = Planet.distance_between_planets(planet, game.get_planet_by_id(fleet.destination_planet_id)) + 2
+            needed = self.calc_ships_needed(game, fleet, dist)
+            if needed <= available_ships[planet.planet_id]:
+                available_ships[planet.planet_id] -= needed
+                return Order(planet, game.get_planet_by_id(fleet.destination_planet_id), needed)
+
+    def check_duplicates(self, game, enemy_fleet):
+        our_fleets = game.get_fleets_by_owner(owner=game.ME)
+        for our_fleet in our_fleets:
+            if enemy_fleet.destination_planet_id == our_fleet.destination_planet_id:
+                return True
+        return False
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+        our_planets = game.get_planets_by_owner(owner=game.ME)
+        available_ships = {x.planet_id: x.num_ships for x in our_planets}
+        orders = []
+        for fleet in game.get_fleets_by_owner(owner=game.ENEMY):
+            if self.check_duplicates(game, fleet) == False:
+                tmp = self.place_order(game, fleet, available_ships)
+                if tmp:
+                    orders.append(tmp)
+        return orders
+
+
 
 class AttackWeakestPlanetFromStrongestBot(Player):
     """
@@ -115,7 +164,8 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(PrincessesBot(), KongFuSyrianPandas(), map_str)
+    #run_and_view_battle(BestBotInGalaxy(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), map_str)
+    run_and_view_battle(BestBotInGalaxy(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
 
 
 def test_bot():
@@ -125,11 +175,13 @@ def test_bot():
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
     maps = [get_random_map(), get_random_map()]
-    print(maps)
-    player_bot_to_test = PrincessesBot()
+    player_bot_to_test = BestBotInGalaxy()
     tester = TestBot(
         player=player_bot_to_test,
-        competitors=[Firstroundstrategy(), NerdBot(), Bot1(), EnderBot(), rocket_league_bot(), UnderTheHoodBot(), KongFuSyrianPandas(), BestBotInGalaxy()],
+        competitors=[
+            AttackEnemyWeakestPlanetFromStrongestBot(),
+            AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
+        ],
         maps=maps
     )
     tester.run_tournament()
@@ -147,5 +199,5 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    #test_bot()
+    test_bot()
     view_bots_battle()
