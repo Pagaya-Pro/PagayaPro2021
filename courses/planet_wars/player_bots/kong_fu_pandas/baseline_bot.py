@@ -4,7 +4,14 @@ import numpy as np
 from queue import PriorityQueue
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
-
+from courses.planet_wars.player_bots.data_campers.best_bot_in_galaxy import BestBotInGalaxy
+from courses.planet_wars.player_bots.ender.EnderBot import EnderBot
+from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
+from courses.planet_wars.player_bots.rocket_league.baseline_bot import rocket_league_bot
+from courses.planet_wars.player_bots.rubber_ducks.Bot1 import Bot1
+from courses.planet_wars.player_bots.space_pirates.baseline_bot import Firstroundstrategy
+from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderTheHoodBot
+from courses.planet_wars.tournament import Tournament, get_map_by_id
 import pandas as pd
 
 
@@ -131,7 +138,7 @@ class KongFuSyrianPandas(Player):
 
     def get_planet_score(self,my_planet,target_planet,num_ships_on_way):
 
-        weights = {'growth_rate':8,'distance':-0.6,'ships':-0.4,'is_enemy':3}
+        weights = {'growth_rate':8,'distance':-0.5,'ships':-0.8,'is_enemy':5}
 
         growth_rate = target_planet.growth_rate
         distance = self.get_dist(my_planet,target_planet)
@@ -165,7 +172,7 @@ class KongFuSyrianPandas(Player):
             return None
         return int(round(min(source_planet.num_ships-5,expected_defence)))
 
-    def calc_dest_planet_expected_size(self,dest_planet,game: PlanetWars):
+    def calc_num_ships_on_the_way(self,dest_planet,game: PlanetWars):
         my_fleets = self.get_my_fleets(game)
         enemy_fleets =  self.get_enemy_fleets(game)
         sum_enemy_fleets_list_on_the_way =  sum([x.num_ships for x in filter(lambda x: x.destination_planet_id == dest_planet.planet_id, enemy_fleets)])
@@ -179,6 +186,8 @@ class KongFuSyrianPandas(Player):
         :param game: PlanetWars object representing the map - use it to fetch all the planets and flees in the map.
         :return: List of orders to execute, each order sends ship from a planet I own to other planet.
         """
+
+        orders = []
 
         # Get atributes
         my_planets = game.get_planets_by_owner(owner=PlanetWars.ME)
@@ -200,7 +209,7 @@ class KongFuSyrianPandas(Player):
 
             enemy_strongest_planet = max(self.get_enemy_planets(game), key=lambda planet: planet.num_ships)
             if my_total_num_of_ships > 2 * enemy_strongest_planet.num_ships:
-                print("Mother Russia")
+                # print("Mother Russia")
                 ships_sent = 0
                 for i in range(len(my_planets)):
 
@@ -246,7 +255,7 @@ class KongFuSyrianPandas(Player):
                 fleet.num_ships -= sum_counter_fleets
 
 
-        orders = []
+        reinforcment_dict = {}
 
         for planet_to_save in planets_in_danger.keys():
             safe_planets = list(planets_not_in_danger.keys())
@@ -256,7 +265,10 @@ class KongFuSyrianPandas(Player):
             for i in range(len(safe_planets)):
                 Planet_of_reinforcment = safe_planets[i]
                 if ((Planet_of_reinforcment.num_ships - planets_in_danger[planet_to_save]) > reinforcment_needed):
-                    orders.append(Order(Planet_of_reinforcment,planet_to_save,reinforcment_needed))
+                    num_ships_on_the_way = int(self.calc_num_ships_on_the_way(planet_to_save, game))
+                    score = self.get_planet_score(Planet_of_reinforcment, planet_to_save, num_ships_on_the_way)
+                    scores.append([Planet_of_reinforcment,planet_to_save,score])
+                    reinforcment_dict[(Planet_of_reinforcment,planet_to_save)] = reinforcment_needed
 
 
             my_planets.sort(key=lambda planet: planet.num_ships, reverse=True)
@@ -266,15 +278,18 @@ class KongFuSyrianPandas(Player):
 
         for my_planet in  my_planets:
             for dest_planet in enemy_and_natural_planets:
-                num_ships_on_the_way = int(self.calc_dest_planet_expected_size(dest_planet,game))
+                num_ships_on_the_way = int(self.calc_num_ships_on_the_way(dest_planet,game))
                 score = self.get_planet_score(my_planet,dest_planet,num_ships_on_the_way)
                 scores.append([my_planet,dest_planet,score])
         # print("orders are: ")
 
         while len(scores) > 0:
             best_move = max(scores, key=lambda move: move[2])
+            try:
+                ships_to_send = (reinforcment_dict[(best_move[0],best_move[1])])
+            except:
+                ships_to_send = self.ships_to_send_in_a_fleet(best_move[0], best_move[1],game)
 
-            ships_to_send = self.ships_to_send_in_a_fleet(best_move[0], best_move[1],game)
 
             if (ships_to_send != None) and (ships_to_send > 0):
                 # print("send {} ships from {} to {}".format(ships_to_send,best_move[0].planet_id,best_move[1].planet_id))
@@ -316,7 +331,7 @@ class KongFuSyrianPandasTest(KongFuSyrianPandas):
             enemy_strongest_planet = max(self.get_enemy_planets(game), key=lambda planet: planet.num_ships)
 
             if my_total_num_of_ships > 2 * enemy_strongest_planet.num_ships:
-                print("Mother Russia Mode!")
+                # print("Mother Russia Mode!")
                 ships_sent = 0
                 for i in range(len(my_planets)):
 
@@ -342,7 +357,7 @@ class KongFuSyrianPandasTest(KongFuSyrianPandas):
 
         for my_planet in my_planets:
             for dest_planet in enemy_and_natural_planets:
-                score = self.get_planet_score(my_planet, dest_planet,int(self.calc_dest_planet_expected_size(dest_planet,game)))
+                score = self.get_planet_score(my_planet, dest_planet,int(self.calc_num_ships_on_the_way(dest_planet,game)))
                 scores.append([my_planet, dest_planet, score])
         # print("orders are: ")
         orders = []
@@ -352,7 +367,6 @@ class KongFuSyrianPandasTest(KongFuSyrianPandas):
             ships_to_send = self.ships_to_send_in_a_fleet(best_move[0], best_move[1], game)
 
             if ships_to_send != None:
-                # print("send {} ships from {} to {}".format(ships_to_send,best_move[0].planet_id,best_move[1].planet_id))
                 orders.append(Order(
                     best_move[0],
                     best_move[1],
@@ -382,7 +396,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(KongFuSyrianPandasTest(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), map_str)
+    run_and_view_battle(KongFuSyrianPandas(), EnderBot(), map_str)
 
 
 def test_bot():
@@ -392,11 +406,12 @@ def test_bot():
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = KongFuSyrianPandas()
+    player_bot_to_test = KongFuSyrianPandasTest()
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            KongFuSyrianPandasTest(), KongFuSyrianPandasTest()
+            NerdBot(), Bot1(), EnderBot(), rocket_league_bot(), UnderTheHoodBot(),
+            BestBotInGalaxy()
         ],
         maps=maps
     )
@@ -415,5 +430,5 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    # test_bot()
-    view_bots_battle()
+    test_bot()
+    # view_bots_battle()
