@@ -251,6 +251,8 @@ class Order:
             return False
         if source_planet.num_ships < self.num_ships:
             return False
+        if self.num_ships <= 0:
+            return False
         return True
 
 
