@@ -2,14 +2,14 @@ from courses.planet_wars.player_bots.aka_galf.baseline_bot import galfFinals
 from courses.planet_wars.player_bots.data_campers.best_bot_in_galaxy import BestBotInGalaxy
 from courses.planet_wars.player_bots.dont_be_mean.dont_be_mean_bot import DontBeMean
 from courses.planet_wars.player_bots.ender.EnderBot import EnderBot
-from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
+from courses.planet_wars.player_bots.hozi.baseline_bot import HoziBot
 from courses.planet_wars.player_bots.kong_fu_pandas.baseline_bot import KongFuSyrianPandas
 from courses.planet_wars.player_bots.rocket_league.baseline_bot import rocket_league_bot
 from courses.planet_wars.player_bots.rubber_ducks.Bot1 import Bot1
 from courses.planet_wars.player_bots.space_pirates.baseline_bot import Firstroundstrategy
 from courses.planet_wars.player_bots.the_princesses.princesses_bot import PrincessesBot
 from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderTheHoodBot
-from courses.planet_wars.tournament import Tournament, get_map_by_id
+from courses.planet_wars.tournament import Tournament
 import warnings
 import pandas as pd
 from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
@@ -21,7 +21,7 @@ from courses.planet_wars.player_bots.the_powerpuff_girls.baseline_bot import Pow
 PLAYER_BOTS = [
     Firstroundstrategy(), NerdBot(), Bot1(), EnderBot(), rocket_league_bot(), UnderTheHoodBot(),
     KongFuSyrianPandas(), BestBotInGalaxy(), spaceNinjas(), BestBot(), PowerPuff(), PrincessesBot(), galfFinals(),
-    DontBeMean()
+    DontBeMean(), HoziBot()
 ]
 
 ROUND1_MAP = """P 13 13 0 36 4
