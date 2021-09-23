@@ -2,6 +2,7 @@ import random
 from typing import Iterable, List
 
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
+from courses.planet_wars.player_bots.dont_be_mean.dont_be_mean_bot import dont_be_mean_bot
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 
 import pandas as pd
@@ -114,12 +115,14 @@ def test_bot():
     Print the battle results data frame and the PlayerScore object of the tested bot.
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
+    #AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot
+    #AttackEnemyWeakestPlanetFromStrongestBot()
     maps = [get_random_map(), get_random_map()]
     player_bot_to_test = AttackWeakestPlanetFromStrongestBot()
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
+            dont_be_mean_bot(), AttackEnemyWeakestPlanetFromStrongestBot()
         ],
         maps=maps
     )
@@ -139,4 +142,4 @@ def test_bot():
 
 if __name__ == "__main__":
     test_bot()
-    view_bots_battle()
+    #view_bots_battle()
