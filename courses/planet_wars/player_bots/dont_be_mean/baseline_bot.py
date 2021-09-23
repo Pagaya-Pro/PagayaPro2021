@@ -2,6 +2,9 @@ import random
 from typing import Iterable, List
 
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
+from courses.planet_wars.player_bots.dont_be_mean.dont_be_mean_bot import DontBeMean
+from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
+from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderTheHoodBot
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 
 import pandas as pd
@@ -68,6 +71,7 @@ class AttackEnemyWeakestPlanetFromStrongestBot(AttackWeakestPlanetFromStrongestB
         return game.get_planets_by_owner(owner=PlanetWars.ENEMY)
 
 
+
 class AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(AttackWeakestPlanetFromStrongestBot):
     """
     Same like AttackWeakestPlanetFromStrongestBot but with smarter flee size.
@@ -104,7 +108,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(AttackWeakestPlanetFromStrongestBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(DontBeMean(), UnderTheHoodBot(), map_str)
 
 
 def test_bot():
@@ -113,12 +117,14 @@ def test_bot():
     Print the battle results data frame and the PlayerScore object of the tested bot.
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
+    #AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot
+    #AttackEnemyWeakestPlanetFromStrongestBot()
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = AttackWeakestPlanetFromStrongestBot()
+    player_bot_to_test = DontBeMean()
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
+            AttackEnemyWeakestPlanetFromStrongestBot(), AttackEnemyWeakestPlanetFromStrongestBot()
         ],
         maps=maps
     )
@@ -137,5 +143,5 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    test_bot()
+    #test_bot()
     view_bots_battle()
