@@ -93,15 +93,11 @@ class BestBot(Player):
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
 
         self.get_state(game)
+        self.game = game
         res = []
 
         if len(game.get_fleets_data_frame()) > 0:
-            neutral_data = self.stealing_neutral_planets(game)
-            res = [Order(
-                row['attack_source'],
-                game.get_planet_by_id(dest_id),
-                row['total_after_conquer'] + 7
-            ) for dest_id, row in neutral_data.iterrows()]
+            res += self.stealing_neutral_planets(game)
 
         return res
 
@@ -113,27 +109,8 @@ class BestBot(Player):
         self.total_growth = sum([planet.growth_rate for planet in my_planets])
         self.opponent_growth = sum([planet.growth_rate for planet in opponent_planets])
 
-    @staticmethod
-    def ships_after_attack(game, row):
-        planet_id = row['destination_planet_id'].values[0]
-        planet = game.get_planet_by_id(planet_id)
-        return row['num_ships'] - planet.num_ships
-
-    def stealing_neutral_planets(self, game: PlanetWars):
-        fleet_data = game.get_fleets_data_frame()
-        fleet_data.to_csv('/Users/oded.gofer/PagayaPro/courses/planet_wars/player_bots/arrakis/small_data.csv')
-        fleet_data['destination_owner'] = fleet_data['destination_planet_id'].apply(lambda x: game.get_planet_by_id(x))
-        fleet_data = fleet_data[(fleet_data['owner'] == game.ENEMY) & (fleet_data['destination_owner'] == game.NEUTRAL)]
-        fleet_data['total_after_conquer'] = fleet_data.apply(self.ships_after_attack, axis=1)
-        fleet_data.set_index('destination_planet_id')
-        fleet['attack_source'] = fleet_data.apply(relevant_attacks, axis=1)
-        fleet = fleet[len(fleet['attack_source']) > 0]
-        fleet['attack_source'] = fleet['attack_source'].apply(lambda x: x[0])
-        return fleet.drop([
-            "owner", "num_ships", "source_planet_id", "total_trip_length", "turns_remaining", 'destination_owner'
-        ], axis=1)
-
-    def relevant_attacks(self, game: PlanetWars, fleet_row):
+    def relevant_attacks(self, fleet_row):
+        game = self.game
         our_planets = game.get_planets_data_frame()
         our_planets = our_planets[our_planets['owner'] == game.ME].set_index('planet_id')
         remaining = fleet_row['turns_remaining']
@@ -144,8 +121,40 @@ class BestBot(Player):
             dist = distance_between_plantes(our_planet, attacked_planet)
             if (dist - remaining == 1):
                 res.append(our_planet)
+                print(our_planet)
 
         return tuple(res)
+
+    def attacking_planet_by_radius(self, planet: Planet, radius: int):
+        game = self.game
+        planets = game.get_planets_by_owner(game.ME)
+        for p in planets:
+            dist = Planet.distance_between_planets(planet, p)
+            if dist == radius:
+                return p
+        return None
+
+    def stealing_neutral_planets(self, game: PlanetWars):
+        fleet_data = game.get_fleets_data_frame()
+        fleet_data['destination_owner'] = fleet_data['destination_planet_id'].apply(lambda x: (game.get_planet_by_id(x)).owner)
+        fleet_data = fleet_data[fleet_data['owner'] == game.ENEMY]
+        fleet_data['destination_planet'] = fleet_data['destination_planet_id'].apply(game.get_planet_by_id)
+        fleet_data['destination_planet_ships'] = fleet_data['destination_planet'].apply(lambda x: x.num_ships)
+        fleet_data['total_after_conquer'] = fleet_data['num_ships'] - fleet_data['destination_planet_ships']
+        fleet_data.set_index('destination_planet_id', inplace=True)
+        res = []
+
+        for dest_id, row in fleet_data.iterrows():
+            dest_planet = game.get_planet_by_id(dest_id)
+            radius = row['turns_remaining']
+            attacking_planet = self.attacking_planet_by_radius(dest_planet, radius + 1)
+            if (attacking_planet != None):
+                res.append(Order(
+                attacking_planet,
+                dest_id,
+                row['total_after_conquer'] + 6))
+
+        return res
 
 def get_random_map():
     """
@@ -164,7 +173,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(BestBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(BestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), map_str)
 
 
 def test_bot():
@@ -178,7 +187,7 @@ def test_bot():
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
+            AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
         ],
         maps=maps
     )
