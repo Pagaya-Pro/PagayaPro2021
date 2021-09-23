@@ -2,7 +2,7 @@ import random
 from typing import Iterable, List
 
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
-from courses.planet_wars.player_bots.dont_be_mean.dont_be_mean_bot import dont_be_mean_bot
+from courses.planet_wars.player_bots.dont_be_mean.dont_be_mean_bot import DontBeMean
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 
 import pandas as pd
@@ -106,7 +106,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(AttackWeakestPlanetFromStrongestBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(DontBeMean(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
 
 
 def test_bot():
@@ -118,11 +118,11 @@ def test_bot():
     #AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot
     #AttackEnemyWeakestPlanetFromStrongestBot()
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = AttackWeakestPlanetFromStrongestBot()
+    player_bot_to_test = DontBeMean()
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            dont_be_mean_bot(), AttackEnemyWeakestPlanetFromStrongestBot()
+            AttackEnemyWeakestPlanetFromStrongestBot(), AttackEnemyWeakestPlanetFromStrongestBot()
         ],
         maps=maps
     )
@@ -141,5 +141,5 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    test_bot()
-    #view_bots_battle()
+    #test_bot()
+    view_bots_battle()
