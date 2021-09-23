@@ -68,6 +68,7 @@ class AttackEnemyWeakestPlanetFromStrongestBot(AttackWeakestPlanetFromStrongestB
         return game.get_planets_by_owner(owner=PlanetWars.ENEMY)
 
 
+
 class AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(AttackWeakestPlanetFromStrongestBot):
     """
     Same like AttackWeakestPlanetFromStrongestBot but with smarter flee size.
