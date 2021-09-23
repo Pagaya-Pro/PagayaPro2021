@@ -160,24 +160,24 @@ class BestBot(Player):
 
     def stealing_neutral_planets(self, game: PlanetWars):
         fleet_data = game.get_fleets_data_frame()
-        fleet_data['destination_owner'] = fleet_data['destination_planet'].apply(lambda x: game.get_planet_by_id(x))
+        fleet_data['destination_owner'] = fleet_data['destination_planet_id'].apply(lambda x: game.get_planet_by_id(x))
         fleet_data = fleet_data[(fleet_data['owner'] == game.ENEMY) & (fleet_data['destination_owner'] == game.NEUTRAL)]
         fleet_data['total_after_conquer'] = fleet_data.apply(lambda row:
-                                                             row['num_ships'] - row['destination_planet'].num_ships,
+                                                             row['num_ships'] - row['destination_planet_id'].num_ships,
                                                              axis=1)
-        fleet_data.set_index('destination_planet')
+        fleet_data.set_index('destination_planet_id')
         fleet['attack_source'] = fleet_data.apply(relevant_attacks, axis=1)
         fleet = fleet[len(fleet['attack_source']) > 0]
         fleet['attack_source'] = fleet['attack_source'].apply(lambda x: x[0])
         return fleet.drop([
-                "owner", "num_ships", "source_planet", "destination_planet", "total_trip_length", "turns_remaining", 'destination_owner'
+                "owner", "num_ships", "source_planet_id", "destination_planet_id", "total_trip_length", "turns_remaining", 'destination_owner'
             ], axis=1)
 
     def relevant_attacks(self, game: PlanetWars, fleet_row):
         our_planets = game.get_planets_data_frame()
         our_planets = our_planets[our_planets['owner'] == game.ME].set_index('planet_id')
         remaining = fleet_row['turns_remaining']
-        attacked_planet = game.get_planet_by_id(fleet_row['destination_planet'])
+        attacked_planet = game.get_planet_by_id(fleet_row['destination_planet_id'])
         res = []
         for planet_id, row in our_planets.iterrows():
             our_planet = game.get_planet_by_id(planet_id)
