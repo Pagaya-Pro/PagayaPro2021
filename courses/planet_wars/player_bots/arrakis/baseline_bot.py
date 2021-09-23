@@ -172,7 +172,8 @@ class BestBot(Player):
         for origin_plant in our_planets:
             possible_planets_est = [[planet, planet.num_ships] for planet in target_plants]
             for planet_est in possible_planets_est:
-                planet_est[1] += 2*Planet.distance_between_planets(origin_plant, planet_est[0])
+                planet_est[1] += (4 * Planet.distance_between_planets(origin_plant, planet_est[0]))
+                planet_est[1] -= (2 * planet_est[0].growth_rate)
             min_planet = min(possible_planets_est, key=lambda x: x[1])
             if min_planet[1] < origin_plant.num_ships:
                 res.append([origin_plant, min_planet[0]])
@@ -228,7 +229,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(BestBot(), KongFuSyrianPandas(), map_str)
+    run_and_view_battle(BestBot(), EnderBot(), map_str)
 
 
 def test_bot():
