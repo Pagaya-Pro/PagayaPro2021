@@ -2,6 +2,8 @@ import random
 from typing import Iterable, List
 
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
+from courses.planet_wars.player_bots.ender.EnderBot import EnderBot
+from courses.planet_wars.player_bots.kong_fu_pandas.baseline_bot import KongFuSyrianPandas
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 
 import pandas as pd
@@ -97,6 +99,7 @@ class UnderTheHoodBot(Player):
     def __init__(self):
         super(UnderTheHoodBot, self).__init__()
         self.FIRST_TURN = 1
+        self.turn =0
 
     def get_planets_to_attack(self, game: PlanetWars) -> List[Planet]:
         """
@@ -127,13 +130,21 @@ class UnderTheHoodBot(Player):
         possible_attacks = possible_attacks.loc[False == ((possible_attacks['growth_rate'] < our_planet.growth_rate) & (possible_attacks['total_ships'] > our_planet.num_ships*0.5))]
         return possible_attacks
 
-    def defend(self, my_planets, all_fleets):
-        atk_fleets_group = all_fleets[all_fleets['owner']==2].groupby('destination_planet_id', ).sum()
-        dfnd_fleets_group = all_fleets[all_fleets['owner'] == 1].groupby('destination_planet_id').sum()
-
-        for planet in my_planets:
-            pass
-        return
+    def check_fleets(self, all_fleets, all_planets):
+        orders = []
+        if len(all_fleets):
+            all_fleets = all_fleets[all_fleets['owner'] == 2]
+            if len(all_fleets):
+                for planet_from in all_planets:
+                    sent = 0
+                    for idx, row in all_fleets.iterrows():
+                        temp = 20 + np.random.randint(10)
+                        sent += temp
+                        if planet_from.num_ships > sent+50:
+                            orders.append(Order(planet_from.planet_id,
+                                        row['destination_planet_id'],
+                                        temp))
+        return orders
 
 
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
@@ -143,6 +154,7 @@ class UnderTheHoodBot(Player):
         :return: List of orders to execute, each order sends ship from a planet I own to other planet.
         """
         # (-1)
+        self.turn += 1
         if self.FIRST_TURN:
             self.calc_distance_all_planets(game)
             self.FIRST_TURN = 0
@@ -166,41 +178,45 @@ class UnderTheHoodBot(Player):
         if len(planets_to_attack) == 0:
             return []
 
+        orders = []
+        # Defend
+        if self.turn %2 == 1:
+            self.check_fleets(all_fleets, my_planets)
         # loop over our planets
-        Orders = []
-        for our_planet in my_planets:
-            possible_attacks = pd.DataFrame()
-            for planet_to_attack in planets_to_attack:
-                # get dist from dictionary
-                dist_to_attack = self.distances[our_planet.planet_id, planet_to_attack.planet_id]
+        if not orders:
+            for our_planet in my_planets:
+                possible_attacks = pd.DataFrame()
+                for planet_to_attack in planets_to_attack:
+                    # get dist from dictionary
+                    dist_to_attack = self.distances[our_planet.planet_id, planet_to_attack.planet_id]
 
-                # get fleets by planet id
-                # reinforcements = all_fleets.loc[all_fleets['destination_planet']==planet_to_attack.planet_id]
-                total_ships = planet_to_attack.num_ships + (
-                            planet_to_attack.owner * 0.5 * planet_to_attack.growth_rate * dist_to_attack)
-                if total_ships < our_planet.num_ships:
-                    score = planet_to_attack.growth_rate * (1 + (planet_to_attack.owner == 2 * 0.7)) / (
-                                dist_to_attack * total_ships)
-                    possible_attacks = possible_attacks.append(
-                        {'dest': planet_to_attack.planet_id, 'total_ships': total_ships, 'score': score,
-                         'owner': planet_to_attack.owner,
-                         'growth_rate': planet_to_attack.growth_rate},
-                        ignore_index=True)
+                    # get fleets by planet id
+                    # reinforcements = all_fleets.loc[all_fleets['destination_planet']==planet_to_attack.planet_id]
+                    total_ships = planet_to_attack.num_ships + (
+                                planet_to_attack.owner * 0.5 * planet_to_attack.growth_rate * dist_to_attack)
+                    if total_ships < our_planet.num_ships:
+                        score = (planet_to_attack.growth_rate * (1 + (planet_to_attack.owner == 2 * 4))) / (
+                                    max(dist_to_attack * total_ships, 1))
+                        possible_attacks = possible_attacks.append(
+                            {'dest': planet_to_attack.planet_id, 'total_ships': total_ships, 'score': score,
+                             'owner': planet_to_attack.owner,
+                             'growth_rate': planet_to_attack.growth_rate},
+                            ignore_index=True)
 
-            #if len(possible_attacks):
-            #   possible_attacks = self.filter_possible_attacks(possible_attacks, our_planet)
+                #if len(possible_attacks):
+                #   possible_attacks = self.filter_possible_attacks(possible_attacks, our_planet)
+                current_ships = our_planet.num_ships
+                if len(possible_attacks):
+                    possible_attacks.sort_values(by='score', inplace=True, ascending=False)
+                    attack = possible_attacks.iloc[[0]]
 
-            if len(possible_attacks):
-                possible_attacks.sort_values(by='score', inplace=True, ascending=False)
-                attack = possible_attacks.iloc[[0]]
-                Orders.append(Order(our_planet.planet_id,
-                                    attack['dest'].iloc[0],
-                                    max((attack['total_ships'].iloc[0] * (1 + 0.2 + attack['owner'].iloc[0] * 0.2)), our_planet.num_ships)))
+                    ships_sent = min((attack['total_ships'].iloc[0] + 10, current_ships))
+                    orders.append(Order(our_planet.planet_id,
+                                        attack['dest'].iloc[0],
+                                        ships_sent))
 
-        # enemy_or_neutral_weakest_planet = min(planets_to_attack, key=lambda planet: planet.num_ships)
 
-        # (4) Send half the ships from my strongest planet to the weakest planet that I do not own.
-        return Orders
+        return orders
 
 
 def get_random_map():
@@ -220,7 +236,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(UnderTheHoodBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(UnderTheHoodBot(), EnderBot(), map_str)
 
 
 def test_bot():
@@ -234,7 +250,9 @@ def test_bot():
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), AttackEnemyWeakestPlanetFromStrongestBot()
+            EnderBot(),
+            KongFuSyrianPandas()
+            #AttackEnemyWeakestPlanetFromStrongestBot()
         ],
         maps=maps
     )
