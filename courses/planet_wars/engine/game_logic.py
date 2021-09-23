@@ -74,6 +74,8 @@ class GameManager:
         """
         # TODO add timeout to the play_turn call
         try:
+            if self.turns == 0:
+                player.new_game_has_started(game_object)
             orders = player.play_turn(game_object)
             # Don't fail if you return None - replace it with empty array
             orders = orders if orders is not None else []
@@ -214,6 +216,7 @@ class GameManager:
         """
         # get orders of player 1
         game_object_for_player_1 = clone_game_object(self.game)
+        game_object_for_player_1.turns = self.turns
         orders_of_player_1 = self.safely_run_bot(self.player_1, game_object_for_player_1)
         if orders_of_player_1 is False:
             return self.PLAYER_2_WIN_STATE
@@ -221,6 +224,7 @@ class GameManager:
         # get orders of player 2
         game_object_for_player_2 = clone_game_object(self.game)
         switch_players_of_game_object(game_object_for_player_2)
+        game_object_for_player_2.turns = self.turns
         orders_of_player_2 = self.safely_run_bot(self.player_2, game_object_for_player_2)
         if orders_of_player_2 is False:
             return self.PLAYER_1_WIN_STATE
