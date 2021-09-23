@@ -93,6 +93,7 @@ class PlanetWars:
         """
         self.planets = planets
         self.fleets = fleets
+        self.turns = 0
 
     def get_planets_by_owner(self, owner):
         """
@@ -276,3 +277,12 @@ class Player:
         """
         raise NotImplemented("Here is where the fun happens - implement here your bot")
 
+    def new_game_has_started(self, game: PlanetWars):
+        """
+        This function will be called at the beginning of each game.
+        Here is the place to restart the game state.
+        for example if you count the number of ships you sent in fleets here is the place to set this counter back to 0
+        Note: Exception here will make you lose the game
+        :param game: PlanetWars object representing the map initial state
+        """
+        pass
