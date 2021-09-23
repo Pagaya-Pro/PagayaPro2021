@@ -76,11 +76,6 @@ class PrincessesBot(Player):
             return
         return max(close_planets, key = lambda planet : planet.growth_rate)
 
-    def fix_close_planets(self, game: PlanetWars, close_planets: List[Planet]):
-        planets_sent_id = [fleet.destination_planet_id for fleet in game.get_fleets_by_owner(owner=PlanetWars.ME)]
-        close_planets_fixed = [planet for planet in close_planets if planet.planet_id not in planets_sent_id]
-        return close_planets_fixed
-
 
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
         """
@@ -90,19 +85,15 @@ class PrincessesBot(Player):
         """
         orders = []
         min_ships_to_enemy_planets, min_ships_to_neutral_planets = self.ships_matrix(game)
+        #print(min_ships_to_neutral_planets)
         for source_planet in game.get_planets_by_owner(owner=PlanetWars.ME):
             close_planets = self.get_close_planets(game, source_planet, min_ships_to_enemy_planets, min_ships_to_neutral_planets)
-            close_planets = self.fix_close_planets(game, close_planets)
-            close_planets.sort(key = lambda planet : planet.growth_rate, reverse = True)
             #print(close_planets)
-            #dest_plent = self.best_close_planet(close_planets)
-            if close_planets!=None:
-                for dest_planet in close_planets:
-                    if dest_planet.owner == PlanetWars.ENEMY:
-                        ships_to_send = min_ships_to_enemy_planets.loc[source_planet, dest_planet]
-                    else:
-                        ships_to_send = min_ships_to_neutral_planets.loc[source_planet, dest_planet]
-                    orders.append(Order(source_planet, dest_planet, ships_to_send))
+            dest_plent = self.best_close_planet(close_planets)
+            if dest_plent!=None:
+                if dest_plent.owner == PlanetWars.ENEMY:
+                    ships_to_send = min_ships_to_enemy_planets.loc[source_planet, dest_plent]
+                else:
+                    ships_to_send = min_ships_to_neutral_planets.loc[source_planet, dest_plent]
+                orders.append(Order(source_planet, dest_plent, ships_to_send))
         return orders
-
-

@@ -6,7 +6,17 @@ from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, T
 
 import pandas as pd
 from courses.planet_wars.player_bots.the_princesses.princesses_bot import PrincessesBot
-
+from courses.planet_wars.player_bots.data_campers.best_bot_in_galaxy import BestBotInGalaxy
+from courses.planet_wars.player_bots.ender.EnderBot import EnderBot
+from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
+from courses.planet_wars.player_bots.kong_fu_pandas.baseline_bot import KongFuSyrianPandas
+from courses.planet_wars.player_bots.rocket_league.baseline_bot import rocket_league_bot
+from courses.planet_wars.player_bots.rubber_ducks.Bot1 import Bot1
+from courses.planet_wars.player_bots.space_pirates.baseline_bot import Firstroundstrategy
+from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderTheHoodBot
+from courses.planet_wars.tournament import Tournament, get_map_by_id
+import warnings
+import pandas as pd
 
 class AttackWeakestPlanetFromStrongestBot(Player):
     """
@@ -105,7 +115,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(PrincessesBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(PrincessesBot(), KongFuSyrianPandas(), map_str)
 
 
 def test_bot():
@@ -115,10 +125,11 @@ def test_bot():
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = AttackWeakestPlanetFromStrongestBot()
+    print(maps)
+    player_bot_to_test = PrincessesBot()
     tester = TestBot(
         player=player_bot_to_test,
-        competitors=[PrincessesBot()],
+        competitors=[Firstroundstrategy(), NerdBot(), Bot1(), EnderBot(), rocket_league_bot(), UnderTheHoodBot(), KongFuSyrianPandas(), BestBotInGalaxy()],
         maps=maps
     )
     tester.run_tournament()
