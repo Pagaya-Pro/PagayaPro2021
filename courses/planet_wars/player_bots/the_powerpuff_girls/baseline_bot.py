@@ -174,22 +174,31 @@ class PowerPuff(Player):
         return planet.num_ships - cur_ships, cur_ownership
 
     def get_planet_score(self, game: PlanetWars, planet, dis):
-        enemy_fleets = game.get_fleets_by_owner(owner=PlanetWars.ENEMY)
-        my_fleets = game.get_fleets_by_owner(owner=PlanetWars.ME)
-        planet_after_fleets = self.whos_planet(planet, enemy_fleets, my_fleets)
-        if planet_after_fleets[1] == PlanetWars.ME:
-            planet_after_fleets_score = -planet_after_fleets[0]
-        else:
-            planet_after_fleets_score = planet_after_fleets[0]
-
-        if planet.owner == PlanetWars.NEUTRAL:
-            score = (planet.growth_rate * self.turns_until_end) - planet.num_ships - planet_after_fleets_score
-            return score
-        elif planet.owner == PlanetWars.ENEMY:
-            score = planet.growth_rate * (self.turns_until_end - dis) - planet.num_ships - planet_after_fleets_score
-            return score
-        score = planet.growth_rate * (self.turns_until_end - dis) - planet.num_ships - planet_after_fleets_score
-        return -score
+        planet_after_fleets = self.whos_planet(planet, game.get_fleets_by_owner(owner=PlanetWars.ENEMY),
+                                               game.get_fleets_by_owner(owner=PlanetWars.ME))
+        if planet_after_fleets[1] == PlanetWars.ENEMY:
+            return planet.growth_rate * (self.turns_until_end - dis)
+        elif planet_after_fleets[1] == PlanetWars.NEUTRAL:
+            return planet.growth_rate * (self.turns_until_end - dis) -planet.num_ships- planet_after_fleets[0]
+        return -float('inf')
+    #
+    # def get_planet_score(self, game: PlanetWars, planet, dis):
+    #     enemy_fleets = game.get_fleets_by_owner(owner=PlanetWars.ENEMY)
+    #     my_fleets = game.get_fleets_by_owner(owner=PlanetWars.ME)
+    #     planet_after_fleets = self.whos_planet(planet, enemy_fleets, my_fleets)
+    #     if planet_after_fleets[1] == PlanetWars.ME:
+    #         planet_after_fleets_score = -planet_after_fleets[0]
+    #     else:
+    #         planet_after_fleets_score = planet_after_fleets[0]
+    #
+    #     if planet.owner == PlanetWars.NEUTRAL:
+    #         score = (planet.growth_rate * self.turns_until_end-dis) - planet.num_ships - planet_after_fleets_score
+    #         return score
+    #     elif planet.owner == PlanetWars.ENEMY:
+    #         score = planet.growth_rate * (self.turns_until_end - dis) - planet_after_fleets_score
+    #         return score
+    #     score = planet.growth_rate * (self.turns_until_end - dis) - planet.num_ships - planet_after_fleets_score
+    #     return -score
 
     def get_lst_scores(self, game: PlanetWars):
         dic_scores = {}
@@ -237,8 +246,6 @@ class PowerPuff(Player):
         except:
             return []
         return order_list
-
-
 
 
 def get_random_map():
