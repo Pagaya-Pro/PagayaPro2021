@@ -170,7 +170,7 @@ class BestBot(Player):
         fleet = fleet[len(fleet['attack_source']) > 0]
         fleet['attack_source'] = fleet['attack_source'].apply(lambda x: x[0])
         return fleet.drop([
-                "owner", "num_ships", "source_planet_id", "destination_planet_id", "total_trip_length", "turns_remaining", 'destination_owner'
+            "owner", "num_ships", "source_planet_id", "destination_planet_id", "total_trip_length", "turns_remaining", 'destination_owner'
             ], axis=1)
 
     def relevant_attacks(self, game: PlanetWars, fleet_row):
