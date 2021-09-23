@@ -86,6 +86,64 @@ class AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(AttackWeakestPlanetFr
             return int(source_planet.num_ships * 0.75)
         return original_num_of_ships
 
+class PowerPuff(Player):
+    def __init__(self):
+        self.turns_until_end = 200
+
+    def get_planet_score(self, planet, dis):
+        score = planet.growth_rate * (self.turns_until_end - dis) - planet.num_ships
+        if planet.owner == PlanetWars.NEUTRAL:
+            return score
+        elif planet.owner == PlanetWars.ENEMY:
+            return 1.25 * (score - dis * planet.growth_rate)
+        return -1 * score
+
+    def get_lst_scores(self, game: PlanetWars):
+        dic_scores = {}
+        for planet in game.planets:
+            score = -float('inf')
+            source = None
+            for my_planet in game.get_planets_by_owner(owner=PlanetWars.ME):
+                dis = Planet.distance_between_planets(planet, my_planet)
+                temp_score = self.get_planet_score(planet, dis)
+                if temp_score > score:
+                    score = temp_score
+                    source = my_planet
+            dic_scores[planet] = [score, source]
+        return dic_scores
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+        """
+        See player.play_turn documentation.
+        :param game: PlanetWars object representing the map - use it to fetch all the planets and flees in the map.
+        :return: List of orders to execute, each order sends ship from a planet I own to other planet.
+        """
+        self.turns_until_end -= 1
+        score_dict = self.get_lst_scores(game)
+        # Dict is empty
+        if len(score_dict) == 0:
+            return []
+
+        # Sort Dictionary
+        score_dict = dict(sorted(score_dict.items(), key=lambda item: item[1][0], reverse=True))
+
+        order_counter = 0
+        order_list = []
+        first_attack = next(iter(score_dict))
+        for dest_planet, tup in score_dict.items():
+            num_ships = dest_planet.num_ships + 1
+            if dest_planet.owner == PlanetWars.ENEMY:
+                num_ships = dest_planet.num_ships + dest_planet.growth_rate*Planet.distance_between_planets(dest_planet, tup[1])
+            if tup[0] > 0 and num_ships < tup[1].num_ships:
+                ships = dest_planet.num_ships + 1
+                order_list.append(Order(source_planet=tup[1].planet_id,destination_planet=dest_planet.planet_id,num_ships=ships))
+                order_counter += 1
+            elif order_counter == 3:
+                break
+        return order_list
+
+
+
 
 def get_random_map():
     """
@@ -104,7 +162,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(AttackWeakestPlanetFromStrongestBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), PowerPuff(), map_str)
 
 
 def test_bot():
@@ -137,5 +195,5 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    test_bot()
+    #test_bot()
     view_bots_battle()
