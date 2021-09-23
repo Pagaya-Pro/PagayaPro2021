@@ -421,7 +421,7 @@ def test_bot():
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            KongFuSyrianPandasOriginal(),NerdBot,
+            KongFuSyrianPandasOriginal(),NerdBot(),
             EnderBot(), rocket_league_bot(), UnderTheHoodBot(),
             BestBotInGalaxy(),PrincessesBot()
         ],
