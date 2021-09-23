@@ -5,6 +5,7 @@ from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 
 import pandas as pd
+from courses.planet_wars.player_bots.the_princesses.princesses_bot import PrincessesBot
 
 
 class AttackWeakestPlanetFromStrongestBot(Player):
@@ -104,7 +105,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(AttackWeakestPlanetFromStrongestBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(PrincessesBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
 
 
 def test_bot():
@@ -117,9 +118,7 @@ def test_bot():
     player_bot_to_test = AttackWeakestPlanetFromStrongestBot()
     tester = TestBot(
         player=player_bot_to_test,
-        competitors=[
-            AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
-        ],
+        competitors=[PrincessesBot()],
         maps=maps
     )
     tester.run_tournament()
@@ -137,5 +136,5 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    test_bot()
+    #test_bot()
     view_bots_battle()
