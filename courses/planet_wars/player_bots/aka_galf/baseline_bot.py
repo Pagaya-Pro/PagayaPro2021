@@ -3,7 +3,7 @@ from typing import Iterable, List
 
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
-from courses.planet_wars.competition import PLAYER_BOTS
+#from courses.planet_wars.competition import PLAYER_BOTS
 
 import pandas as pd
 
@@ -436,7 +436,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(PLAYER_BOTS[6], galfFinals(), map_str)
+    run_and_view_battle(SmartSendBot(), galfFinals(), map_str)
 
 
 def test_bot():
@@ -449,7 +449,7 @@ def test_bot():
     player_bot_to_test = galfFinals()
     tester = TestBot(
         player=player_bot_to_test,
-        competitors=[PLAYER_BOTS[3],PLAYER_BOTS[6]],
+        competitors=[SmartSendBot(),SmartSendBot()],
         maps=maps
     )
     tester.run_tournament()
@@ -467,6 +467,6 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    #test_bot()
-    for i in range(10):
-        view_bots_battle()
+    test_bot()
+    #for i in range(10):
+    #view_bots_battle()
