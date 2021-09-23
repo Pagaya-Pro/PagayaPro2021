@@ -31,7 +31,7 @@ class spaceNinjas(Player):
         :param game: PlanetWars object representing the map - use it to fetch all the planets and flees in the map.
         :return: List of orders to execute, each order sends ship from a planet I own to other planet.
         """
-        print(game.get_fleets_data_frame().head())
+        #print(game.get_fleets_data_frame().head())
 
         list_planet_to_attack = []
         list_planet_to_attack_from = []
@@ -45,7 +45,7 @@ class spaceNinjas(Player):
         for i in game.get_planets_by_owner(1):
             planets_df_copy = planets_df.copy()
             planets_df_copy['distance'] = np.sqrt((planets_df_copy.x - i.x) **2 + (planets_df_copy.y - i.y) **2)
-            planets_df_copy['threshold'] = planets_df_copy['num_ships'] + planets_df_copy['distance'] * planets_df_copy['growth_rate']
+            planets_df_copy['threshold'] = np.abs(planets_df_copy['num_ships'] + planets_df_copy['distance'] * planets_df_copy['growth_rate'] - 10)
 
 
             #if sum(planets_df_copy['threshold']  >= i.num_ships)  == len(planets_df_copy):
@@ -62,12 +62,14 @@ class spaceNinjas(Player):
                     planets_df_copy = planets_df_copy.sort_values(['threshold'], ascending=[False])
                     planet_to_attack = planets_df_copy.head(1)
 
-                    if planet_to_attack['num_ships'].iloc[0] < i.num_ships:
+                    if planet_to_attack['num_ships'].iloc[0] < i.num_ships+1:
                         planet_to_attack_id = planet_to_attack['planet_id'].iloc[0]
-                        num_ships_send = planet_to_attack['threshold'].iloc[0] + 2
+                        num_ships_send = planet_to_attack['threshold'].iloc[0] + 2 +10
                         planet_to_attack_from = i.planet_id
                         #print("+++")
-                        if planet_to_attack_id not in game.get_fleets_data_frame()['destination_planet']:
+                        #if len(game.get_fleets_data_frame()) != 0:
+                            #if planet_to_attack_id not in game.get_fleets_data_frame()['destination_planet_id']:
+                        if all(fleet.destination_planet_id != planet_to_attack_id for fleet in game.fleets):
                             list_order.append(Order(
                                 planet_to_attack_from,
                                 planet_to_attack_id,
@@ -87,13 +89,16 @@ class spaceNinjas(Player):
 
                     if len(planet_to_attack['num_ships']) == 0:
                         continue
-                    if planet_to_attack['num_ships'].iloc[0] < i.num_ships:
+                    if planet_to_attack['num_ships'].iloc[0] < i.num_ships+1:
                         planet_to_attack_id = planet_to_attack['planet_id'].iloc[0]
-                        num_ships_send = planet_to_attack['num_ships'].iloc[0] + 2
+                        num_ships_send = planet_to_attack['num_ships'].iloc[0] + 2 +10
                         planet_to_attack_from = i.planet_id
                         #print("---")
-
-                        if planet_to_attack_id not in game.get_fleets_data_frame()['destination_planet']:
+                        #if len(game.get_fleets_data_frame()) != 0:
+                           # print(game.get_fleets_data_frame()['destination_planet_id'])
+                           # print("+++",planet_to_attack_id not in game.get_fleets_data_frame()['destination_planet_id'],
+                            #      planet_to_attack_id)
+                        if all(fleet.destination_planet_id != planet_to_attack_id for fleet in game.fleets):
                             list_order.append(Order(
                                 planet_to_attack_from,
                                 planet_to_attack_id,
@@ -102,14 +107,21 @@ class spaceNinjas(Player):
                         #list_planet_to_attack.append(planet_to_attack_id)
                         #list_planet_to_attack_from.append(planet_to_attack_from)
                         #list_num_ships_to_send.append(num_ships_send)
+        """"
+       
+        a = planets_df[planets_df['owner'] == 1]
+        b = planets_df[planets_df['owner'] == 2]
+        if list_order == []:
+            list_order.append(Order(
 
+                a.loc[a['num_ships']==a['num_ships'].max()]['planet_id'],
+                b.loc[b['num_ships']==b['num_ships'].max()]['planet_id'],
+                a.loc[a['num_ships']==a['num_ships'].max()]['num_ships'] -1
+            ))
+        """
+        #print(list_order)
         return list_order
 
-
-
-        #planets_df = game.get_planets_data_frame()
-        #planets_df['distance'] = game.
-        #print(game.get_planets_data_frame().head())
 
 class AttackWeakestPlanetFromStrongestBot(Player):
     """
