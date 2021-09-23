@@ -145,7 +145,7 @@ class BestBot(Player):
     NAME = "Arrakis"
 
     def __init__(self):
-        return self
+        pass
 
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
         get_state(self, game)
