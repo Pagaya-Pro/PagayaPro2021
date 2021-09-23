@@ -19,6 +19,8 @@ class HoziBot(Player):
 
     def next_enemy_conquer(self, game: PlanetWars, source: Planet, planets) -> Planet:
         enemy_planets = planets[planets['owner'] == PlanetWars.ENEMY]
+        if enemy_planets.shape[0] == 0:
+            return enemy_planets
         enemy_planets.loc[:, 'distance'] = self.calc_distance(source.x, source.y, enemy_planets['x'], enemy_planets['y'])
         enemy_planets.loc[:, 'cost'] = enemy_planets['num_ships'] + enemy_planets['growth_rate'] * enemy_planets['distance']
         enemy_planets = enemy_planets[enemy_planets['cost'] < source.num_ships]
@@ -27,8 +29,10 @@ class HoziBot(Player):
 
     def next_neutral_conquer(self, game: PlanetWars, source: Planet, planets) -> Planet:
         neutral_planets = planets[planets['owner'] == PlanetWars.NEUTRAL]
-        neutral_planets.loc[:, 'distance'] = self.calc_distance(source.x, source.y, neutral_planets['x'], neutral_planets['y'])
         neutral_planets.loc[:, 'cost'] = neutral_planets['num_ships']
+        if neutral_planets.shape[0] == 0:
+            return neutral_planets
+        neutral_planets.loc[:, 'distance'] = self.calc_distance(source.x, source.y, neutral_planets['x'], neutral_planets['y'])
         neutral_planets = neutral_planets[neutral_planets['cost'] < source.num_ships]
         return neutral_planets.sort_values(by='cost', ascending=False)
 
@@ -48,6 +52,23 @@ class HoziBot(Player):
             else:
                 return None
 
+    def attack(self, game: PlanetWars, source: Planet, planets) -> Order:
+        next_enemy_conquer_df = self.next_enemy_conquer(game, source, planets)
+        if next_enemy_conquer_df.shape[0] > 0:
+            next_enemy_conquer_df = next_enemy_conquer_df[next_enemy_conquer_df['cost'] < (source.num_ships // 2)]
+            if next_enemy_conquer_df.shape[0] > 0:
+                next_conquer = next_enemy_conquer_df['planet_id'].iloc[0]
+                planets.loc[planets['planet_id'] == source.planet_id, 'num_ships'] -= (source.num_ships // 2)
+                return Order(source, next_conquer, (source.num_ships // 2))
+        else:
+            next_neutral_conquer_df = self.next_neutral_conquer(game, source, planets)
+            next_neutral_conquer_df = next_neutral_conquer_df[next_neutral_conquer_df['cost'] < (source.num_ships // 2)]
+            if next_neutral_conquer_df.shape[0] > 0:
+                next_conquer = next_neutral_conquer_df['planet_id'].iloc[0]
+                planets.loc[planets['planet_id'] == source.planet_id, 'num_ships'] -= (source.num_ships // 2)
+                return Order(source, next_conquer, (source.num_ships // 2))
+            else:
+                return None
 
     def snip(self, game: PlanetWars, destination: Planet, enemy_fleet: Fleet, planets) -> Order:
         # send +10 ships from the ships of the closest planet
@@ -95,6 +116,12 @@ class HoziBot(Player):
             elif destination.owner == PlanetWars.NEUTRAL:
                 order = self.snip(game, destination, fleet, planets)
                 orders.append(order) if order is not None else None
+        our_planets = planets[planets['owner'] == PlanetWars.ME]
+        if our_planets.shape[0] > 0:
+            source_id = our_planets.sort_values(by='num_ships', ascending=False)['planet_id'].iloc[0]
+            source = game.get_planet_by_id(source_id)
+            order = self.attack(game, source, planets)
+            orders.append(order) if order is not None else None
         return orders
 
 class AttackWeakestPlanetFromStrongestBot(Player):
@@ -204,11 +231,11 @@ def test_bot():
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = AttackWeakestPlanetFromStrongestBot()
+    player_bot_to_test = HoziBot()
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
+            AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), AttackWeakestPlanetFromStrongestBot()
         ],
         maps=maps
     )
