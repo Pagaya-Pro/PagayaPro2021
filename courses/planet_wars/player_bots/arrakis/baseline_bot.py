@@ -153,9 +153,16 @@ class BestBot(Player):
         fleet_data['destination_planet_ships'] = fleet_data['destination_planet'].apply(lambda x: x.num_ships)
         fleet_data['total_after_conquer'] = fleet_data['num_ships'] - fleet_data['destination_planet_ships']
         fleet_data.set_index('destination_planet_id', inplace=True)
+
+        fleets_omw = game.get_fleets_by_owner(game.ME)
+        planets_omw = [fleet.destination_planet_id for fleet in fleets_omw]
         res = []
 
         for dest_id, row in fleet_data.iterrows():
+
+            if dest_id in planets_omw:
+                continue
+
             dest_planet = game.get_planet_by_id(dest_id)
             radius = row['turns_remaining']
             attacking_planet = self.attacking_planet_by_radius(dest_planet, radius + 1)
@@ -173,7 +180,7 @@ class BestBot(Player):
             possible_planets_est = [[planet, planet.num_ships] for planet in target_plants]
             for planet_est in possible_planets_est:
                 planet_est[1] += (4 * Planet.distance_between_planets(origin_plant, planet_est[0]))
-                planet_est[1] -= (2 * planet_est[0].growth_rate)
+                planet_est[1] -= (3 * planet_est[0].growth_rate)
             min_planet = min(possible_planets_est, key=lambda x: x[1])
             if min_planet[1] < origin_plant.num_ships:
                 res.append([origin_plant, min_planet[0]])
