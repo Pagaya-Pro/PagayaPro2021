@@ -3,7 +3,9 @@ from typing import Iterable
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 import numpy as np
 
+
 class EnderBot(Player):
+
     NAME = "Ender"
 
     def score(self, src: Planet, dest: Planet, game: PlanetWars, destinations: set):
@@ -29,9 +31,9 @@ class EnderBot(Player):
         return dist_score + foreign_score + growth_rate_score + ship_dest_score()
 
     def ships_to_send_in_a_flee(self, source_planet: Planet, dest_planet: Planet) -> int:
-        dest_ships_on_arrival = dest_planet.num_ships + 1 +\
+        dest_ships_on_arrival = dest_planet.num_ships + \
                                 Planet.distance_between_planets(source_planet, dest_planet) * dest_planet.growth_rate
-        return max(dest_ships_on_arrival, source_planet.num_ships)
+        return min(dest_ships_on_arrival + 1, source_planet.num_ships)
 
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
         """
@@ -41,20 +43,23 @@ class EnderBot(Player):
         """
         orders = []
         try:
+            # dests = {fleet.destination_planet_id for fleet in game.get_fleets_by_owner(game.ME)}
             dests = set()
 
             my_planets = game.get_planets_by_owner(game.ME)
             foreign_planets = game.get_planets_by_owner(game.ENEMY) + game.get_planets_by_owner(game.NEUTRAL)
 
             for planet in my_planets:
-                targets = [(dest, self.score(planet, dest, game, dests)) for dest in foreign_planets]
-                best_target = max(targets, key=lambda target: target[1])
+                try:
+                    targets = [(dest, self.score(planet, dest, game, dests)) for dest in foreign_planets]
+                    best_target = max(targets, key=lambda target: target[1])
 
-                if best_target[1] > -np.inf:
-                    fleet_size = self.ships_to_send_in_a_flee(planet, best_target[0])
-                    orders.append(Order(planet.planet_id, best_target[0].planet_id, fleet_size))
-                    dests.add(best_target[0])
-
+                    if best_target[1] > -np.inf:
+                        fleet_size = self.ships_to_send_in_a_flee(planet, best_target[0])
+                        orders.append(Order(planet.planet_id, best_target[0].planet_id, fleet_size))
+                        dests.add(best_target[0])
+                except:
+                    continue
         except:
             pass
 
