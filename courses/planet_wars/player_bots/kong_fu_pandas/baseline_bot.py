@@ -108,6 +108,20 @@ class KongFuSyrianPandas(Player):
         """
         return [p for p in game.planets if p.owner == PlanetWars.ENEMY]
 
+    def get_enemy_fleets(self, game: PlanetWars) -> List[Planet]:
+        """
+        :param game: PlanetWars object representing the map
+        :return: The planets we need to attack
+        """
+        return [f for f in game.fleets if f.owner == PlanetWars.ENEMY]
+
+    def get_my_fleets(self, game: PlanetWars) -> List[Planet]:
+        """
+        :param game: PlanetWars object representing the map
+        :return: The planets we need to attack
+        """
+        return [f for f in game.fleets if f.owner == PlanetWars.ME]
+
     def get_natural_planets(self, game: PlanetWars) -> List[Planet]:
         """
         :param game: PlanetWars object representing the map
@@ -115,16 +129,18 @@ class KongFuSyrianPandas(Player):
         """
         return [p for p in game.planets if p.owner == PlanetWars.NEUTRAL]
 
-    def get_planet_score(self,my_planet,target_planet):
+    def get_planet_score(self,my_planet,target_planet,num_ships_on_way):
 
         weights = {'growth_rate':8,'distance':-0.6,'ships':-0.4,'is_enemy':3}
 
         growth_rate = target_planet.growth_rate
         distance = self.get_dist(my_planet,target_planet)
-        ships = target_planet.num_ships
+        ships = target_planet.num_ships + num_ships_on_way
         is_enemy = target_planet.owner == PlanetWars.ENEMY
 
         temp_score = (growth_rate * weights['growth_rate'] + distance * weights['distance'] + ships * weights['ships'])
+        if temp_score < 0:
+            temp_score = 0
         if is_enemy:
             if temp_score > 0:
                 return weights['is_enemy']*temp_score
@@ -147,8 +163,15 @@ class KongFuSyrianPandas(Player):
 
         if source_planet.num_ships < expected_defence:
             return None
-        return int(round(min(source_planet.num_ships-1,expected_defence)))
+        return int(round(min(source_planet.num_ships-5,expected_defence)))
 
+    def calc_dest_planet_expected_size(self,dest_planet,game: PlanetWars):
+        my_fleets = self.get_my_fleets(game)
+        enemy_fleets =  self.get_enemy_fleets(game)
+        sum_enemy_fleets_list_on_the_way =  sum([x.num_ships for x in filter(lambda x: x.destination_planet_id == dest_planet.planet_id, enemy_fleets)])
+        sum_my_fleets_list_on_the_way= sum([x.num_ships for x in filter(lambda x: x.destination_planet_id == dest_planet.planet_id, my_fleets)])
+
+        return sum_enemy_fleets_list_on_the_way - sum_my_fleets_list_on_the_way
 
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
         """
@@ -165,16 +188,135 @@ class KongFuSyrianPandas(Player):
         my_planets.sort(key=lambda planet: planet.num_ships,reverse=True)
         my_strongest_planet = max(my_planets, key=lambda planet: planet.num_ships)
         scores = []
-        fleetsDataFrame = game.get_fleets_data_frame()
         PlanetDataFrame = game.get_planets_data_frame()
+        fleetsDataFrame = game.get_fleets_data_frame()
         my_planets_df = PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ME]
         enemy_planets_df = PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ENEMY]
         my_total_num_of_ships = my_planets_df['num_ships'].sum()
         enemy_total_num_of_ships = enemy_planets_df['num_ships'].sum()
+
+
         if(len(self.get_enemy_planets(game)) > 0):
+
+            enemy_strongest_planet = max(self.get_enemy_planets(game), key=lambda planet: planet.num_ships)
+            if my_total_num_of_ships > 2 * enemy_strongest_planet.num_ships:
+                print("Mother Russia")
+                ships_sent = 0
+                for i in range(len(my_planets)):
+
+                    Order(my_planets[i], enemy_strongest_planet, int(my_planets[i].num_ships * 0.8))
+                    my_last_fleet_size = int(my_planets[i].num_ships * 0.8)
+                    ships_sent += my_last_fleet_size
+                    ships_to_send = self.ships_to_send_in_a_fleet(my_planets[i], enemy_strongest_planet, game)
+                    if (ships_to_send != None and ships_sent > self.ships_to_send_in_a_fleet(my_planets[i],
+                                                                                             enemy_strongest_planet,
+                                                                                             game)):
+                        break
+                    my_planets[i].num_ships -= my_last_fleet_size
+
+
+        if self.IS_FIRST_TURN:
+            self.IS_FIRST_TURN = False
+            my_planet = game.get_planet_by_id(PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ME].planet_id.values)
+            enemy_planet =  game.get_planet_by_id(PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ENEMY].planet_id.values)
+            if (self.get_dist(my_planet,enemy_planet) <= 1.5):
+                print("We have used kamikaza")
+                return Order(my_planet,enemy_planet,KAMIKAZE_FIRST_ATTACK * my_planet.num_ships)
+
+        planets_in_danger = {}
+        planets_not_in_danger = {}
+        # # Calculate Fleets
+        enemy_fleets_list = self.get_enemy_fleets(game)
+        my_fleets_list = self.get_my_fleets(game)
+
+        # Only address enemy fleets position if they exist
+        if(len(enemy_fleets_list) > 0):
+            for planet in my_planets:
+                sum_attacks = sum([x.num_ships for x in filter(lambda x: x.destination_planet_id == planet.planet_id, enemy_fleets_list)])
+                if (sum_attacks > planet.num_ships):
+                    planets_in_danger[planet] = sum_attacks \
+                                                # - planet.growth_rate
+                else:
+                    planets_not_in_danger[planet] = sum_attacks \
+                                                    # TODO - consider looking at planet growth rate
+                                                    # - planet.growth_rate
+
+            for fleet in my_fleets_list:
+                sum_counter_fleets = sum([x.num_ships for x in filter(lambda x: x.destination_planet_id == fleet.destination_planet_id, enemy_fleets_list)])
+                fleet.num_ships -= sum_counter_fleets
+
+
+        orders = []
+
+        for planet_to_save in planets_in_danger.keys():
+            safe_planets = list(planets_not_in_danger.keys())
+            safe_planets.sort(key = lambda Planet: self.get_dist(planet_to_save,Planet))
+            reinforcment_needed = max(planet_to_save.num_ships - planets_in_danger[planet_to_save],0)
+
+            for i in range(len(safe_planets)):
+                Planet_of_reinforcment = safe_planets[i]
+                if ((Planet_of_reinforcment.num_ships - planets_in_danger[planet_to_save]) > reinforcment_needed):
+                    orders.append(Order(Planet_of_reinforcment,planet_to_save,reinforcment_needed))
+
+
+            my_planets.sort(key=lambda planet: planet.num_ships, reverse=True)
+            # print(my_planets)
+
+
+
+        for my_planet in  my_planets:
+            for dest_planet in enemy_and_natural_planets:
+                num_ships_on_the_way = int(self.calc_dest_planet_expected_size(dest_planet,game))
+                score = self.get_planet_score(my_planet,dest_planet,num_ships_on_the_way)
+                scores.append([my_planet,dest_planet,score])
+        # print("orders are: ")
+
+        while len(scores) > 0:
+            best_move = max(scores, key=lambda move: move[2])
+
+            ships_to_send = self.ships_to_send_in_a_fleet(best_move[0], best_move[1],game)
+
+            if (ships_to_send != None) and (ships_to_send > 0):
+                # print("send {} ships from {} to {}".format(ships_to_send,best_move[0].planet_id,best_move[1].planet_id))
+                orders.append(Order(
+                            best_move[0],
+                            best_move[1],
+                            ships_to_send))
+                best_move[0].num_ships -= ships_to_send
+            scores.remove(best_move)
+
+        return orders
+
+
+class KongFuSyrianPandasTest(KongFuSyrianPandas):
+
+    NAME = "KongFuSyrianPandasTest"
+    IS_FIRST_TURN = True
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+        """
+        See player.play_turn documentation.
+        :param game: PlanetWars object representing the map - use it to fetch all the planets and flees in the map.
+        :return: List of orders to execute, each order sends ship from a planet I own to other planet.
+        """
+
+        # Get atributes
+        my_planets = game.get_planets_by_owner(owner=PlanetWars.ME)
+        enemy_and_natural_planets = game.get_planets_by_owner(owner=PlanetWars.ENEMY) + game.get_planets_by_owner(
+            owner=PlanetWars.NEUTRAL)
+        if len(my_planets) == 0:
+            return []
+        my_planets.sort(key=lambda planet: planet.num_ships, reverse=True)
+        my_strongest_planet = max(my_planets, key=lambda planet: planet.num_ships)
+        scores = []
+        fleetsDataFrame = game.get_fleets_data_frame()
+        PlanetDataFrame = game.get_planets_data_frame()
+        my_planets_df = PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ME]
+        my_total_num_of_ships = my_planets_df['num_ships'].sum()
+        if (len(self.get_enemy_planets(game)) > 0):
             enemy_strongest_planet = max(self.get_enemy_planets(game), key=lambda planet: planet.num_ships)
 
             if my_total_num_of_ships > 2 * enemy_strongest_planet.num_ships:
+                print("Mother Russia Mode!")
                 ships_sent = 0
                 for i in range(len(my_planets)):
 
@@ -188,120 +330,39 @@ class KongFuSyrianPandas(Player):
                         break
                     my_planets[i].num_ships -= my_last_fleet_size
 
-
-
-
         if self.IS_FIRST_TURN:
             self.IS_FIRST_TURN = False
-            my_planet = game.get_planet_by_id(PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ME].planet_id.values)
-            enemy_planet =  game.get_planet_by_id(PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ENEMY].planet_id.values)
-            if (self.get_dist(my_planet,enemy_planet) <= 1.5):
+            my_planet = game.get_planet_by_id(
+                PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ME].planet_id.values)
+            enemy_planet = game.get_planet_by_id(
+                PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ENEMY].planet_id.values)
+            if (self.get_dist(my_planet, enemy_planet) <= 1.5):
                 print("We have used kamikaza")
-                return Order(my_planet,enemy_planet,KAMIKAZE_FIRST_ATTACK * my_planet.num_ships)
+                return Order(my_planet, enemy_planet, KAMIKAZE_FIRST_ATTACK * my_planet.num_ships)
 
-
-
-
-        for my_planet in  my_planets:
+        for my_planet in my_planets:
             for dest_planet in enemy_and_natural_planets:
-                score = self.get_planet_score(my_planet,dest_planet)
-                scores.append([my_planet,dest_planet,score])
+                score = self.get_planet_score(my_planet, dest_planet,int(self.calc_dest_planet_expected_size(dest_planet,game)))
+                scores.append([my_planet, dest_planet, score])
         # print("orders are: ")
         orders = []
         while len(scores) > 0:
             best_move = max(scores, key=lambda move: move[2])
 
-            ships_to_send = self.ships_to_send_in_a_fleet(best_move[0], best_move[1],game)
+            ships_to_send = self.ships_to_send_in_a_fleet(best_move[0], best_move[1], game)
 
             if ships_to_send != None:
                 # print("send {} ships from {} to {}".format(ships_to_send,best_move[0].planet_id,best_move[1].planet_id))
                 orders.append(Order(
-                            best_move[0],
-                            best_move[1],
-                            ships_to_send))
+                    best_move[0],
+                    best_move[1],
+                    ships_to_send))
                 best_move[0].num_ships -= ships_to_send
             scores.remove(best_move)
         # if(len(orders) == 0):
         #     print("No orders sent")
         # print(len(orders))
         return orders
-
-
-# class KongFuSyrianPandasTest(KongFuSyrianPandas):
-#
-#     NAME = "KongFuSyrianPandasTest"
-#     IS_FIRST_TURN = True
-#     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
-#         """
-#         See player.play_turn documentation.
-#         :param game: PlanetWars object representing the map - use it to fetch all the planets and flees in the map.
-#         :return: List of orders to execute, each order sends ship from a planet I own to other planet.
-#         """
-#
-#         # Get atributes
-#         my_planets = game.get_planets_by_owner(owner=PlanetWars.ME)
-#         enemy_and_natural_planets = game.get_planets_by_owner(owner=PlanetWars.ENEMY) + game.get_planets_by_owner(
-#             owner=PlanetWars.NEUTRAL)
-#         if len(my_planets) == 0:
-#             return []
-#         my_planets.sort(key=lambda planet: planet.num_ships, reverse=True)
-#         my_strongest_planet = max(my_planets, key=lambda planet: planet.num_ships)
-#         scores = []
-#         fleetsDataFrame = game.get_fleets_data_frame()
-#         PlanetDataFrame = game.get_planets_data_frame()
-#         my_planets_df = PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ME]
-#         my_total_num_of_ships = my_planets_df['num_ships'].sum()
-#         if (len(self.get_enemy_planets(game)) > 0):
-#             enemy_strongest_planet = max(self.get_enemy_planets(game), key=lambda planet: planet.num_ships)
-#
-#             # if my_total_num_of_ships > 2 * enemy_strongest_planet.num_ships:
-#             #     print("Mother Russia Mode!")
-#             #     ships_sent = 0
-#             #     for i in range(len(my_planets)):
-#             #
-#             #         Order(my_planets[i], enemy_strongest_planet, my_planets[i].num_ships * 0.8)
-#             #         my_last_fleet_size = my_planets[i].num_ships * 0.8
-#             #         ships_sent += my_last_fleet_size
-#             #         ships_to_send = self.ships_to_send_in_a_fleet(my_planets[i], enemy_strongest_planet, game)
-#             #         if (ships_to_send != None and ships_sent > self.ships_to_send_in_a_fleet(my_planets[i],
-#             #                                                                                  enemy_strongest_planet,
-#             #                                                                                  game)):
-#             #             break
-#             #         my_planets[i].num_ships -= my_last_fleet_size
-#
-#         if self.IS_FIRST_TURN:
-#             self.IS_FIRST_TURN = False
-#             my_planet = game.get_planet_by_id(
-#                 PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ME].planet_id.values)
-#             enemy_planet = game.get_planet_by_id(
-#                 PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ENEMY].planet_id.values)
-#             if (self.get_dist(my_planet, enemy_planet) <= 1.5):
-#                 print("We have used kamikaza")
-#                 return Order(my_planet, enemy_planet, KAMIKAZE_FIRST_ATTACK * my_planet.num_ships)
-#
-#         for my_planet in my_planets:
-#             for dest_planet in enemy_and_natural_planets:
-#                 score = self.get_planet_score(my_planet, dest_planet)
-#                 scores.append([my_planet, dest_planet, score])
-#         # print("orders are: ")
-#         orders = []
-#         while len(scores) > 0:
-#             best_move = max(scores, key=lambda move: move[2])
-#
-#             ships_to_send = self.ships_to_send_in_a_fleet(best_move[0], best_move[1], game)
-#
-#             if ships_to_send != None:
-#                 # print("send {} ships from {} to {}".format(ships_to_send,best_move[0].planet_id,best_move[1].planet_id))
-#                 orders.append(Order(
-#                     best_move[0],
-#                     best_move[1],
-#                     ships_to_send))
-#                 best_move[0].num_ships -= ships_to_send
-#             scores.remove(best_move)
-#         # if(len(orders) == 0):
-#         #     print("No orders sent")
-#         # print(len(orders))
-#         return orders
 
 
 def get_random_map():
@@ -321,7 +382,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(KongFuSyrianPandas(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), map_str)
+    run_and_view_battle(KongFuSyrianPandasTest(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), map_str)
 
 
 def test_bot():
@@ -335,7 +396,7 @@ def test_bot():
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            AttackWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
+            KongFuSyrianPandasTest(), KongFuSyrianPandasTest()
         ],
         maps=maps
     )
@@ -354,5 +415,5 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    test_bot()
-    #view_bots_battle()
+    # test_bot()
+    view_bots_battle()
