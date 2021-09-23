@@ -1,5 +1,9 @@
+
+import math
 import random
 from typing import Iterable, List
+
+import numpy as np
 
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
@@ -33,9 +37,14 @@ class AttackWeakestPlanetFromStrongestBot(Player):
             return []
 
         # (2) Find my strongest planet.
+        planets_df = game.get_planets_data_frame()
         my_planets = game.get_planets_by_owner(owner=PlanetWars.ME)
+        enemy_planets = game.get_planets_by_owner(owner=PlanetWars.ENEMY)
+        natural_planets = game.get_planets_by_owner(owner=PlanetWars.NEUTRAL)
+
         if len(my_planets) == 0:
             return []
+
         my_strongest_planet = max(my_planets, key=lambda planet: planet.num_ships)
 
         # (3) Find the weakest enemy or neutral planet.
@@ -49,6 +58,96 @@ class AttackWeakestPlanetFromStrongestBot(Player):
             my_strongest_planet,
             enemy_or_neutral_weakest_planet,
             self.ships_to_send_in_a_flee(my_strongest_planet, enemy_or_neutral_weakest_planet)
+        )]
+
+class rocket_league_bot(Player):
+    """
+    Example of very simple bot - it send flee from its strongest planet to the weakest enemy/neutral planet
+    """
+
+    def get_planets_to_attack(self, game: PlanetWars) -> List[Planet]:
+        """
+        :param game: PlanetWars object representing the map
+        :return: The planets we need to attack
+        """
+        return [p for p in game.planets if p.owner != PlanetWars.ME]
+
+    def ships_to_send_in_a_flee(self, source_planet: Planet, dest_planet: Planet) -> int:
+        return source_planet.num_ships // 2
+
+
+    w_growth_rate = 0.4
+    w_number_of_ships = 0.6
+
+    def calculate_rate(self, df, index):
+        if df[(df["owner"] == 1) & (df["planet_id"] == index)]["planet_id"].count() > 0:
+            return -np.inf
+        owner = df[df["owner"] == 1]
+        my_ships = owner["num_ships"].sum()
+        my_growth_rate = owner["growth_rate"].sum()
+        owner2 = df[df["owner"] == 2]
+        enemy_ships = owner2["num_ships"].sum()
+        enemy_growth_rate = owner2["growth_rate"].sum()
+        current_rate = (my_ships - enemy_ships) * self.w_number_of_ships + (self.w_growth_rate - enemy_growth_rate) * my_growth_rate
+
+        ship_to = df[df["planet_id"] == index]["num_ships"].iloc[0]
+        df["dist"] = 0
+
+        if ship_to * 1.20 < my_ships :
+            df.loc[df["planet_id"] == index,"num_ships"] = ship_to * 1.20 - df[df["planet_id"] == index]["num_ships"]
+            df.loc[df["owner"] == 1,"num_ships"] -= (df[df["owner"] == 1]["num_ships"] / my_ships) * (ship_to * 1.20)
+            df.loc[df["planet_id"] == index,"owner"] = 1
+
+        x = df[df["planet_id"] == index].iloc[0].x
+        y = df[df["planet_id"] == index].iloc[0].y
+        dist_rate = ((df["x"] - x) ** 2 + (df["y"] -  y) ** 2) ** (1.0/2.0)
+        df["dist"] = dist_rate
+        maxdist = dist_rate.max()
+        my_ships = df[df["owner"] == 1]["num_ships"].sum()
+        my_growth_rate = df[df["owner"] == 1]
+        my_growth_rate = (my_growth_rate["growth_rate"] + (maxdist - my_growth_rate["dist"])).sum()
+        enemy_ships = df[df["owner"] == 2]["num_ships"].sum()
+        enemy_growth_rate = df[df["owner"] == 2]
+        enemy_growth_rate = (enemy_growth_rate["growth_rate"]).sum()
+        next_rate = (my_ships - enemy_ships)  * self.w_number_of_ships + self.w_growth_rate * (my_growth_rate - enemy_growth_rate)
+
+        return next_rate - current_rate
+
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+        """
+        See player.play_turn documentation.
+        :param game: PlanetWars object representing the map - use it to fetch all the planets and flees in the map.
+        :return: List of orders to execute, each order sends ship from a planet I own to other planet.
+        """
+        growth_rate_weight = 3
+        distance_weight = 0.6
+        num_of_ships_weight = 0.2
+        our_ships_weight = 0.2
+        if len(game.get_fleets_by_owner(owner=PlanetWars.ME)) >= 1:
+            return []
+
+        # (2) Find my strongest planet.
+        planets_df = game.get_planets_data_frame().copy()
+        dict = {}
+        for index, row in planets_df.iterrows():
+            dict[index] = self.calculate_rate(planets_df.copy(),index)
+
+        max_value = max(dict.values())  # maximum value
+        max_keys = [k for k, v in dict.items() if v == max_value]  # getting all keys containing the `maximum`
+
+        #my_strongest_planet = max(my_planets, key=lambda planet: planet.num_ships)
+        fromship = planets_df["num_ships"].argmax()
+        my_strongest_planet = game.get_planet_by_id(fromship)
+        # (3) Find the weakest enemy or neutral planet.
+        toship = max_keys[0]
+        planets_to_attack = game.get_planet_by_id(toship)
+
+        # (4) Send half the ships from my strongest planet to the weakest planet that I do not own.
+        return [Order(
+            my_strongest_planet,
+            planets_to_attack,
+            self.ships_to_send_in_a_flee(my_strongest_planet, planets_to_attack)
         )]
 
 
@@ -104,7 +203,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(AttackWeakestPlanetFromStrongestBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(rocket_league_bot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
 
 
 def test_bot():
@@ -114,7 +213,7 @@ def test_bot():
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = AttackWeakestPlanetFromStrongestBot()
+    player_bot_to_test = rocket_league_bot()
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
@@ -138,4 +237,22 @@ def test_bot():
 
 if __name__ == "__main__":
     test_bot()
-    view_bots_battle()
+    #view_bots_battle()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
