@@ -8,6 +8,8 @@ import pandas as pd
 
 
 class Bot1(Player):
+    NAME = "Rubber_Ducks"
+
     def help_planets_need_help(self, game: PlanetWars) -> Iterable[Order]:
         orders = []
 
@@ -64,7 +66,6 @@ class Bot1(Player):
     def elusive(self, game:PlanetWars):
         orders = []
         for my_planet in game.get_planets_by_owner(PlanetWars.ME):
-
             is_attacked = False
             attack_force = 0
             for attacking_fleet in game.get_fleets_by_owner(PlanetWars.ENEMY):
@@ -84,6 +85,7 @@ class Bot1(Player):
                     continue
                 else:
                     orders.append(Order(my_planet, run_to, my_planet.num_ships))
+        return orders
 
     def go_to_closest(self, game: PlanetWars, defensive_planets) ->Iterable[Order]:
 
