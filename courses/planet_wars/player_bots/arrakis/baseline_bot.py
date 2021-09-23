@@ -28,8 +28,10 @@ class AttackWeakestPlanetFromStrongestBot(Player):
         :return: List of orders to execute, each order sends ship from a planet I own to other planet.
         """
         # (1) If we currently have a fleet in flight, just do nothing.
+        '''
         if len(game.get_fleets_by_owner(owner=PlanetWars.ME)) >= 1:
             return []
+        '''
 
         # (2) Find my strongest planet.
         my_planets = game.get_planets_by_owner(owner=PlanetWars.ME)
@@ -85,6 +87,73 @@ class AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(AttackWeakestPlanetFr
             return int(source_planet.num_ships * 0.75)
         return original_num_of_ships
 
+
+class sBestBot(AttackWeakestPlanetFromStrongestBot):
+    #@Override
+    def ships_to_send_in_a_flee(self, source_planet: Planet, dest_planet: Planet) -> int:
+        if dest_planet.owner == 0:
+            enemy_planet = dest_planet.num_ships
+            if(source_planet.num_ships > enemy_planet):
+                return enemy_planet+1
+            return 0
+        if dest_planet.owner == 2:
+            on_arrival = dest_planet.num_ships + Planet.distance_between_planets(source_planet,dest_planet)*dest_planet.growth_rate
+            if source_planet.num_ships > on_arrival +1:
+                return on_arrival
+        return 0
+
+    def get_planets_to_attack(self, game: PlanetWars) -> List[Planet]:
+        """
+        :param game: PlanetWars object representing the map
+        :return: The planets we need to attack
+        """
+        possible_planets = [p for p in game.planets if p.owner != PlanetWars.ME]
+        possible_planets = sorted(possible_planets, key = lambda x: x.owner, reverse = True)
+        fleets_omw = game.get_fleets_by_owner(game.ME)
+        planets_omw = [f.destination_planet_id for f in fleets_omw]
+        ans = []
+        for planet in possible_planets:
+            if planet.planet_id not in planets_omw:
+                ans.append(planet)
+        return ans
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+        """
+        See player.play_turn documentation.
+        :param game: PlanetWars object representing the map - use it to fetch all the planets and flees in the map.
+        :return: List of orders to execute, each order sends ship from a planet I own to other planet.
+        """
+        # (1) If we currently have a fleet in flight, just do nothing.
+        '''
+        if len(game.get_fleets_by_owner(owner=PlanetWars.ME)) >= 1:
+            return []
+        '''
+
+        # (2) Find my strongest planet.
+        my_planets = game.get_planets_by_owner(owner=PlanetWars.ME)
+        if len(my_planets) == 0:
+            return []
+        my_strongest_planet = max(my_planets, key=lambda planet: planet.num_ships)
+
+        # (3) Find the weakest enemy or neutral planet.
+        planets_to_attack = self.get_planets_to_attack(game)
+        if len(planets_to_attack) == 0:
+            return []
+        enemy_or_neutral_weakest_planet = min(planets_to_attack, key=lambda planet: planet.num_ships)
+
+        how_many = self.ships_to_send_in_a_flee(my_strongest_planet, enemy_or_neutral_weakest_planet)
+        if how_many ==0:
+            return []
+
+        # (4) Send half the ships from my strongest planet to the weakest planet that I do not own.
+        return [Order(
+            my_strongest_planet,
+            enemy_or_neutral_weakest_planet,
+            how_many
+        )]
+
+
+'''
 class BestBot(Player):
     "Arrakis Bot"
 
@@ -146,7 +215,7 @@ class BestBot(Player):
                 res.append(our_planet)
 
         return tuple(res)
-
+'''
 def get_random_map():
     """
     :return: A string of a random map in the maps directory
@@ -164,7 +233,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(BestBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(sBestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), map_str)
 
 
 def test_bot():
@@ -174,7 +243,7 @@ def test_bot():
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = BestBot()
+    player_bot_to_test = sBestBot()
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
