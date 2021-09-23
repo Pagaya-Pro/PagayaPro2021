@@ -36,6 +36,7 @@ class EnderBot(Player):
         if dest.planet_id in destinations or src.num_ships == 0:
             return -np.inf
 
+
         dist = Planet.distance_between_planets(src, dest)
 
         dist_score = 4 / dist
