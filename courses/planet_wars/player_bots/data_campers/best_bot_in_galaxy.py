@@ -89,8 +89,8 @@ class AttackWeakestPlanetFromStrongestBot(Player):
         :return: List of orders to execute, each order sends ship from a planet I own to other planet.
         """
         # (1) If we currently have a fleet in flight, just do nothing.
-        if len(game.get_fleets_by_owner(owner=PlanetWars.ME)) >= 1:
-            return []
+        #if len(game.get_fleets_by_owner(owner=PlanetWars.ME)) >= 1:
+         #   return []
 
         # (2) Find my strongest planet.
         my_planets = game.get_planets_by_owner(owner=PlanetWars.ME)
@@ -179,7 +179,7 @@ def test_bot():
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            AttackEnemyWeakestPlanetFromStrongestBot(),
+            #AttackEnemyWeakestPlanetFromStrongestBot(),
             AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
         ],
         maps=maps
