@@ -5,10 +5,12 @@ from queue import PriorityQueue
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 from courses.planet_wars.player_bots.data_campers.best_bot_in_galaxy import BestBotInGalaxy
+from courses.planet_wars.player_bots.the_princesses.princesses_bot import PrincessesBot
 from courses.planet_wars.player_bots.ender.EnderBot import EnderBot
 from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
 from courses.planet_wars.player_bots.rocket_league.baseline_bot import rocket_league_bot
-from courses.planet_wars.player_bots.rubber_ducks.Bot1 import Bot1
+# from courses.planet_wars.player_bots.rubber_ducks.Bot1 import Bot1
+from courses.planet_wars.player_bots.kong_fu_pandas.original_bot import KongFuSyrianPandasOriginal
 from courses.planet_wars.player_bots.space_pirates.baseline_bot import Firstroundstrategy
 from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderTheHoodBot
 from courses.planet_wars.tournament import Tournament, get_map_by_id
@@ -138,7 +140,7 @@ class KongFuSyrianPandas(Player):
 
     def get_planet_score(self,my_planet,target_planet,num_ships_on_way):
 
-        weights = {'growth_rate':8,'distance':-0.5,'ships':-0.8,'is_enemy':5}
+        weights = {'growth_rate':8,'distance':-0.6,'ships':-0.4,'is_enemy':3}
 
         growth_rate = target_planet.growth_rate
         distance = self.get_dist(my_planet,target_planet)
@@ -281,6 +283,7 @@ class KongFuSyrianPandas(Player):
                 num_ships_on_the_way = int(self.calc_num_ships_on_the_way(dest_planet,game))
                 score = self.get_planet_score(my_planet,dest_planet,num_ships_on_the_way)
                 scores.append([my_planet,dest_planet,score])
+
         # print("orders are: ")
 
         while len(scores) > 0:
@@ -298,7 +301,15 @@ class KongFuSyrianPandas(Player):
                             best_move[1],
                             ships_to_send))
                 best_move[0].num_ships -= ships_to_send
-            scores.remove(best_move)
+                temp_scores = []
+                scores.remove(best_move)
+                for score in scores:
+                    if  (score[1] == best_move[1]):
+                        score[2] = score[2]/10
+                    temp_scores.append(score)
+                scores = temp_scores
+            else:
+                scores.remove(best_move)
 
         return orders
 
@@ -330,7 +341,7 @@ class KongFuSyrianPandasTest(KongFuSyrianPandas):
         if (len(self.get_enemy_planets(game)) > 0):
             enemy_strongest_planet = max(self.get_enemy_planets(game), key=lambda planet: planet.num_ships)
 
-            if my_total_num_of_ships > 2 * enemy_strongest_planet.num_ships:
+            if my_total_num_of_ships > 0.5 * enemy_strongest_planet.num_ships:
                 # print("Mother Russia Mode!")
                 ships_sent = 0
                 for i in range(len(my_planets)):
@@ -396,7 +407,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(KongFuSyrianPandas(), EnderBot(), map_str)
+    run_and_view_battle(KongFuSyrianPandas(), PrincessesBot(), map_str)
 
 
 def test_bot():
@@ -406,12 +417,13 @@ def test_bot():
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = KongFuSyrianPandasTest()
+    player_bot_to_test = KongFuSyrianPandas()
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            NerdBot(), Bot1(), EnderBot(), rocket_league_bot(), UnderTheHoodBot(),
-            BestBotInGalaxy()
+            KongFuSyrianPandasOriginal(),NerdBot,
+            EnderBot(), rocket_league_bot(), UnderTheHoodBot(),
+            BestBotInGalaxy(),PrincessesBot()
         ],
         maps=maps
     )
@@ -430,5 +442,5 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    test_bot()
-    # view_bots_battle()
+    # test_bot()
+    view_bots_battle()
