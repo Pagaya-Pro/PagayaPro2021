@@ -21,7 +21,7 @@ class BestBotInGalaxy(Player):
 #            return planet.num_ships
 #        return planet.growth_rate * time + planet.num_ships
 
-    def get_future_ships(self, game, planet):
+    def get_future_ships(self, game, planet, next_fleet, time):
         our_fleets_to_dest = [x for x in game.get_fleets_by_owner(owner=game.ME) if
                               x.destination_planet_id == planet.planet_id]
         enemy_fleets_to_dest = [x for x in game.get_fleets_by_owner(owner=game.ENEMY) if
@@ -49,7 +49,7 @@ class BestBotInGalaxy(Player):
                         planet_owner = 1
             else:
                 if planet_owner == 1:
-                    needed = needed - (planet.growth_rate * (fleet.turns_remaining - last_fleet_arrival_time) - fleet.num_ships)
+                    needed = needed - (planet.growth_rate * (fleet.turns_remaining - last_fleet_arrival_time + 1) - fleet.num_ships)
                     #occupation_on_arrival = planet.growth_rate * (fleet.turns_remaining - last_fleet_arrival_time) + needed
                     #needed = occupation_on_arrival - needed
                     if needed > 0:
@@ -65,6 +65,17 @@ class BestBotInGalaxy(Player):
                         planet_owner = 2
                         needed = abs(needed) + 1
             last_fleet_arrival_time = fleet.turns_remaining
+
+        time_diff = next_fleet.turns_remaining - time
+        if time_diff < 0:
+            needed = needed + planet.growth_rate*(time_diff + 1) + 1
+        else:
+            if planet.owner == game.ME:
+                needed = needed - planet.growth_rate*(time_diff + 1) + 1
+            else:
+                needed = 1000000  # high number that will not be sent.
+        if needed <= 0:
+            needed = 1000000
         return needed
 
 
@@ -78,7 +89,7 @@ class BestBotInGalaxy(Player):
             incoming_ships = fleet.num_ships
 
         if fleet.turns_remaining < time_our_fleet_arrivres and dest_planet.owner != game.ENEMY:
-            aftermath = incoming_ships - self.get_future_ships(game, dest_planet, fleet.turns_remaining)
+            aftermath = incoming_ships - self.get_future_ships(game, dest_planet, fleet.turns_remaining, time_our_fleet_arrivres)
             ribit = dest_planet.growth_rate * (time_our_fleet_arrivres - fleet.turns_remaining + 1)
             needed = aftermath + ribit + 1
         else:
@@ -95,7 +106,7 @@ class BestBotInGalaxy(Player):
         planet_list = self.get_ordered_planets(game, fleet.destination_planet_id)
         for planet in planet_list:
             dist = Planet.distance_between_planets(planet, game.get_planet_by_id(fleet.destination_planet_id)) + 2
-            needed = self.get_future_ships(game, game.get_planet_by_id(fleet.destination_planet_id))
+            needed = self.get_future_ships(game, game.get_planet_by_id(fleet.destination_planet_id), fleet, dist)
             if needed <= available_ships[planet.planet_id]:
                 available_ships[planet.planet_id] -= needed
                 return Order(planet, game.get_planet_by_id(fleet.destination_planet_id), needed)
