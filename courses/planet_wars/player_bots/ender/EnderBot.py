@@ -31,38 +31,25 @@ class EnderBot(Player):
         """
         def ship_dest_score():
             dest_ships_on_arrival = dest.num_ships + dist * dest.growth_rate
-            # if (1 - dest_ships_on_arrival / src.num_ships) > 0:
-            # print((src.num_ships - dest_ships_on_arrival) / max(src.num_ships, dest_ships_on_arrival, 1))
             return 1 - dest_ships_on_arrival / src.num_ships
-            # return 10 * (src.num_ships - dest_ships_on_arrival) / max(src.num_ships, dest_ships_on_arrival, 1)
+
+        if dest.planet_id in destinations or src.num_ships == 0:
+            return -np.inf
 
         dist = Planet.distance_between_planets(src, dest)
-        turns_left = 200 - game.turns
-
-        # if turns_left < dist or dest.planet_id in destinations or src.num_ships == 0:
-        if dest.planet_id in destinations or src.num_ships == 0:
-            # if src.num_ships == 0:
-            return -np.inf
 
         dist_score = 4 / dist
         foreign_score = 1 if dest.owner == game.NEUTRAL else 2
-        growth_rate_score = 3 * (dest.growth_rate - src.growth_rate) / max(src.growth_rate, dest.growth_rate, 1)
+        growth_rate_score = 2 * (dest.growth_rate - src.growth_rate) / max(src.growth_rate, dest.growth_rate, 1)
         ship_score = ship_dest_score()
-
         final_score = foreign_score + (dist_score + growth_rate_score) + ship_score
 
-        # self._scores = self._scores.append({'sum': final_score,
-        #                                     'growth': growth_rate_score,
-        #                                     'dist': dist_score,
-        #                                     'ships':ship_score,
-        #                                     'foreign': foreign_score}, ignore_index=True)
-        # print(final_score)
         return final_score
 
     def ships_to_send_in_a_flee(self, source_planet: Planet, dest_planet: Planet) -> int:
         dest_ships_on_arrival = dest_planet.num_ships + \
                                 Planet.distance_between_planets(source_planet, dest_planet) * dest_planet.growth_rate
-        return max(dest_ships_on_arrival + 1, int(source_planet.num_ships * 0.75))
+        return max(dest_ships_on_arrival + 1, int(source_planet.num_ships * 0.45))
 
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
         """
@@ -72,7 +59,6 @@ class EnderBot(Player):
         """
         orders = []
         try:
-            # dests = {fleet.destination_planet_id for fleet in game.get_fleets_by_owner(game.ME)}
             dests = set()
 
             my_planets = game.get_planets_by_owner(game.ME)
@@ -82,7 +68,7 @@ class EnderBot(Player):
                 try:
                     targets = [(dest, self.score(planet, dest, game, dests)) for dest in foreign_planets]
                     best_target = max(targets, key=lambda target: target[1])
-                    # print(best_target[1])
+
                     if best_target[1] > -np.inf:
                         fleet_size = self.ships_to_send_in_a_flee(planet, best_target[0])
                         orders.append(Order(planet.planet_id, best_target[0].planet_id, fleet_size))
@@ -95,7 +81,5 @@ class EnderBot(Player):
             pass
 
         finally:
-            # print(self._scores)
-            # self._scores = pd.DataFrame(columns=['sum', 'growth', 'dist', 'ships', 'foreign'])
             return orders
 
