@@ -5,6 +5,7 @@ from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 
 import pandas as pd
+import numpy as np
 
 
 class AttackWeakestPlanetFromStrongestBot(Player):
@@ -87,6 +88,112 @@ class AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(AttackWeakestPlanetFr
         return original_num_of_ships
 
 
+
+class UnderTheHoodBot(Player):
+    """
+    Chen & Roei's bot
+    """
+
+    def __init__(self):
+        super(UnderTheHoodBot, self).__init__()
+        self.FIRST_TURN = 1
+
+    def get_planets_to_attack(self, game: PlanetWars) -> List[Planet]:
+        """
+        :param game: PlanetWars object representing the map
+        :return: The planets we need to attack
+        """
+        return [p for p in game.planets if p.owner != PlanetWars.ME]
+
+    def get_planets_to_defend(self, game: PlanetWars) -> List[Planet]:
+        """
+        :param game: PlanetWars object representing the map
+        :return: The planets we can defend
+        """
+        return [p for p in game.planets if p.owner == PlanetWars.ME]
+
+    def ships_to_send_in_a_flee(self, source_planet: Planet, dest_planet: Planet) -> int:
+        return source_planet.num_ships // 2
+
+    def calc_distance_all_planets(self, game: PlanetWars):
+        df = game.get_planets_data_frame()
+        X_all = df['x'].to_numpy()
+        Y_all = df['y'].to_numpy()
+        dist_x = np.square(X_all - X_all[:, np.newaxis])
+        dist_y = np.square(Y_all - Y_all[:, np.newaxis])
+        self.distances = np.ceil(np.sqrt(dist_x + dist_y))
+
+    def filter_possible_attacks(self, possible_attacks, our_planet):
+        possible_attacks = possible_attacks.loc[False == ((possible_attacks['growth_rate'] < our_planet.growth_rate) & (possible_attacks['total_ships'] > our_planet.num_ships*0.5))]
+        return possible_attacks
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+        """
+        See player.play_turn documentation.
+        :param game: PlanetWars object representing the map - use it to fetch all the planets and flees in the map.
+        :return: List of orders to execute, each order sends ship from a planet I own to other planet.
+        """
+        # (-1)
+        if self.FIRST_TURN:
+            self.calc_distance_all_planets(game)
+            self.FIRST_TURN = 0
+        # (0)
+        all_planets = game.get_planets_data_frame()
+        all_fleets = game.get_fleets_data_frame()
+
+        # (1) If we currently have a fleet in flight, just do nothing.
+        # if len(game.get_fleets_by_owner(owner=PlanetWars.ME)) >= 1:
+        #    return []
+
+        # (2) Find all my planets.
+        my_planets = game.get_planets_by_owner(owner=PlanetWars.ME)
+        if len(my_planets) == 0:
+            return []
+        # my_strongest_planet = max(my_planets, key=lambda planet: planet.num_ships)
+
+        # (3) Find the best planet to attack (for each of our planets).
+
+        planets_to_attack = self.get_planets_to_attack(game)
+        if len(planets_to_attack) == 0:
+            return []
+
+        # loop over our planets
+        Orders = []
+        for our_planet in my_planets:
+            possible_attacks = pd.DataFrame()
+            for planet_to_attack in planets_to_attack:
+                # get dist from dictionary
+                dist_to_attack = self.distances[our_planet.planet_id, planet_to_attack.planet_id]
+
+                # get fleets by planet id
+                # reinforcements = all_fleets.loc[all_fleets['destination_planet']==planet_to_attack.planet_id]
+                total_ships = planet_to_attack.num_ships + (
+                            planet_to_attack.owner * 0.5 * planet_to_attack.growth_rate * dist_to_attack)
+                if total_ships < our_planet.num_ships:
+                    score = planet_to_attack.growth_rate * (1 + (planet_to_attack.owner == 2 * 0.5)) / (
+                                dist_to_attack * total_ships)
+                    possible_attacks = possible_attacks.append(
+                        {'dest': planet_to_attack.planet_id, 'total_ships': total_ships, 'score': score,
+                         'owner': planet_to_attack.owner,
+                         'growth_rate': planet_to_attack.growth_rate},
+                        ignore_index=True)
+
+            if len(possible_attacks):
+               possible_attacks = self.filter_possible_attacks(possible_attacks, our_planet)
+
+            if len(possible_attacks):
+                possible_attacks.sort_values(by='score', inplace=True, ascending=False)
+                attack = possible_attacks.iloc[[0]]
+                Orders.append(Order(our_planet.planet_id,
+                                    attack['dest'].iloc[0],
+                                    max((attack['total_ships'].iloc[0] * (1 + 0.2 + attack['owner'].iloc[0] * 0.1)), our_planet.num_ships)))
+
+        # enemy_or_neutral_weakest_planet = min(planets_to_attack, key=lambda planet: planet.num_ships)
+
+        # (4) Send half the ships from my strongest planet to the weakest planet that I do not own.
+        return Orders
+
+
 def get_random_map():
     """
     :return: A string of a random map in the maps directory
@@ -104,7 +211,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(AttackWeakestPlanetFromStrongestBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(UnderTheHoodBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
 
 
 def test_bot():
@@ -114,11 +221,11 @@ def test_bot():
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = AttackWeakestPlanetFromStrongestBot()
+    player_bot_to_test = UnderTheHoodBot()
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
+            AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), AttackEnemyWeakestPlanetFromStrongestBot()
         ],
         maps=maps
     )
@@ -138,4 +245,4 @@ def test_bot():
 
 if __name__ == "__main__":
     test_bot()
-    view_bots_battle()
+    #view_bots_battle()
