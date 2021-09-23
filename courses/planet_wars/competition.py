@@ -1,5 +1,6 @@
 from courses.planet_wars.player_bots.aka_galf.baseline_bot import SmartSendBot
 from courses.planet_wars.player_bots.data_campers.best_bot_in_galaxy import BestBotInGalaxy
+from courses.planet_wars.player_bots.dont_be_mean.dont_be_mean_bot import DontBeMean
 from courses.planet_wars.player_bots.ender.EnderBot import EnderBot
 from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
 from courses.planet_wars.player_bots.kong_fu_pandas.baseline_bot import KongFuSyrianPandas
@@ -19,7 +20,8 @@ from courses.planet_wars.player_bots.the_powerpuff_girls.baseline_bot import Pow
 # Insert Your bot object here, as BotObject(). Don't forget to set BotObject.NAME to your team name
 PLAYER_BOTS = [
     Firstroundstrategy(), NerdBot(), Bot1(), EnderBot(), rocket_league_bot(), UnderTheHoodBot(),
-    KongFuSyrianPandas(), BestBotInGalaxy(), spaceNinjas(), BestBot(), PowerPuff(), PrincessesBot(), SmartSendBot()
+    KongFuSyrianPandas(), BestBotInGalaxy(), spaceNinjas(), BestBot(), PowerPuff(), PrincessesBot(), SmartSendBot(),
+    DontBeMean()
 ]
 
 ROUND1_MAP = """P 13 13 0 36 4
