@@ -1,11 +1,101 @@
 import random
 from typing import Iterable, List
 
-from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
+from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet, Fleet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 
 import pandas as pd
+import numpy as np
 
+
+class HoziBot(Player):
+
+    NAME = "Hozi"
+
+
+    def calc_distance(self, source_x, source_y, destination_x, destination_y):
+        return np.ceil(np.sqrt(((source_x - destination_x) ** 2) + ((source_y - destination_y) ** 2)))
+
+
+    def next_enemy_conquer(self, game: PlanetWars, source: Planet, planets) -> Planet:
+        enemy_planets = planets[planets['owner'] == PlanetWars.ENEMY]
+        enemy_planets.loc[:, 'distance'] = self.calc_distance(source.x, source.y, enemy_planets['x'], enemy_planets['y'])
+        enemy_planets.loc[:, 'cost'] = enemy_planets['num_ships'] + enemy_planets['growth_rate'] * enemy_planets['distance']
+        enemy_planets = enemy_planets[enemy_planets['cost'] < source.num_ships]
+        return enemy_planets.sort_values(by='cost', ascending=False)
+
+
+    def next_neutral_conquer(self, game: PlanetWars, source: Planet, planets) -> Planet:
+        neutral_planets = planets[planets['owner'] == PlanetWars.NEUTRAL]
+        neutral_planets.loc[:, 'distance'] = self.calc_distance(source.x, source.y, neutral_planets['x'], neutral_planets['y'])
+        neutral_planets.loc[:, 'cost'] = neutral_planets['num_ships']
+        neutral_planets = neutral_planets[neutral_planets['cost'] < source.num_ships]
+        return neutral_planets.sort_values(by='cost', ascending=False)
+
+
+    def run(self, game: PlanetWars, source: Planet, planets) -> Order:
+        next_enemy_conquer_df = self.next_enemy_conquer(game, source, planets)
+        if next_enemy_conquer_df.shape[0] > 0:
+            next_conquer = next_enemy_conquer_df['planet_id'].iloc[0]
+            planets.loc[planets['planet_id'] == source.planet_id, 'num_ships'] = 0
+            return Order(source, next_conquer, source.num_ships)
+        else:
+            next_neutral_conquer_df = self.next_neutral_conquer(game, source, planets)
+            if next_neutral_conquer_df.shape[0] > 0:
+                next_conquer = next_neutral_conquer_df['planet_id'].iloc[0]
+                planets.loc[planets['planet_id'] == source.planet_id, 'num_ships'] = 0
+                return Order(source, next_conquer, source.num_ships)
+            else:
+                return None
+
+
+    def snip(self, game: PlanetWars, destination: Planet, enemy_fleet: Fleet, planets) -> Order:
+        # send +10 ships from the ships of the closest planet
+        our_planets = planets[planets['owner'] == PlanetWars.ME]
+        our_planets.loc[:, 'distance'] = self.calc_distance(destination.x, destination.y, our_planets['x'], our_planets['y'])
+        our_planets.loc[:, 'cost'] = enemy_fleet.num_ships + (our_planets['distance'] - enemy_fleet.turns_remaining) * destination.growth_rate
+        our_planets = our_planets[(our_planets['num_ships'] > (our_planets['cost'] + 10)) & (our_planets['distance'] > enemy_fleet.turns_remaining)]
+        our_planets.sort_values(by='cost', ascending=True, inplace=True)
+        if our_planets.shape[0] > 0:
+            source = our_planets.iloc[0]
+            planets.loc[planets['planet_id'] == source.planet_id, 'num_ships'] -= source.cost + 10
+            return Order(source.planet_id, destination, source.cost + 10)
+        else:
+            return None
+
+
+    def get_help(self, game: PlanetWars, destination: Planet, enemy_fleet: Fleet, planets) -> Order:
+        our_planets = planets[planets['owner'] == PlanetWars.ME]
+        our_planets.loc[:, 'distance'] = self.calc_distance(destination.x, destination.y, our_planets['x'], our_planets['y'])
+        help_needed = enemy_fleet.num_ships - (destination.num_ships + enemy_fleet.turns_remaining * destination.growth_rate)
+        if help_needed <= 0:
+            return None
+        our_planets = our_planets[(our_planets['distance'] < enemy_fleet.turns_remaining) & (our_planets['num_ships'] > help_needed)]
+        if our_planets.shape[0] > 0:
+            source = our_planets.iloc[0]
+            planets.loc[planets['planet_id'] == source.planet_id, 'num_ships'] -= help_needed
+            return Order(source.planet_id, destination, help_needed)
+
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+        orders = []
+        planets = game.get_planets_data_frame().copy()
+        enemy_fleets = game.get_fleets_by_owner(PlanetWars.ENEMY)
+        for fleet in enemy_fleets:
+            destination = game.get_planet_by_id(fleet.destination_planet_id)
+            if destination.owner == PlanetWars.ME:
+                our_ships = destination.num_ships + destination.growth_rate * fleet.turns_remaining
+                if our_ships < fleet.num_ships:
+                    if fleet.turns_remaining <= 1:
+                        order = self.run(game, destination, planets)
+                        orders.append(order) if order is not None else None
+                    else:
+                        order = self.get_help(game, destination, fleet, planets)
+                        orders.append(order) if order is not None else None
+            elif destination.owner == PlanetWars.NEUTRAL:
+                order = self.snip(game, destination, fleet, planets)
+                orders.append(order) if order is not None else None
+        return orders
 
 class AttackWeakestPlanetFromStrongestBot(Player):
     """
@@ -104,7 +194,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(AttackWeakestPlanetFromStrongestBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(AttackWeakestPlanetFromStrongestBot(), HoziBot(), map_str)
 
 
 def test_bot():
@@ -137,5 +227,5 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    test_bot()
+    # test_bot()
     view_bots_battle()
