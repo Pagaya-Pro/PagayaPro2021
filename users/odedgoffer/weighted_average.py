@@ -1,8 +1,12 @@
 from typing import List
 
+
 def compute_weighted_average(x: List[float],
                              w: List[float])-> float:
-        return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
+	if sum(w) != 0:
+		return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
+	else:
+		return sum([x1 * w1 for x1, w1 in zip(x, w)])
 
 def check_compute_weighted_average(x:List[float],
                                    w:List[float])-> float:
