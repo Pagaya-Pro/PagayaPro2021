@@ -68,28 +68,52 @@ class DontBeMean(Player):
             orders+= self.defense(new_fleets_attacking_me, dists, my_planets_ids, planet_df, game)
 
         #attack
-        orders += self.attack(planet_df, center_planet, game)
+        orders += self.attack_enemy(planet_df, center_planet, game, 3, 3)
+        orders += self.attack_neutral(planet_df, center_planet, game, 1, 1)
         return orders
 
-    def attack(self, planet_df, center,game):
+    def attack_enemy(self, planet_df, center,game, num_attack, num_attackers):
         orders=[]
-        df_enemey = planet_df.loc[(planet_df.owner!=1) | (planet_df.planet_id==center.planet_id)]
+        df_enemey = planet_df.loc[(planet_df.owner==2) | (planet_df.planet_id==center.planet_id)]
         dists = self.get_dist_mat(df_enemey)
-        next_attack_list = self.closest_planets(5, center, dists)
-        next_attack = max(next_attack_list, key=lambda p: planet_df.iloc[p].growth_rate)
-        df_mine = planet_df.loc[(planet_df.owner==1) | (planet_df.planet_id==next_attack)]
-        dists = self.get_dist_mat(df_mine)
-        next_attack_planet = game.get_planet_by_id(next_attack)
-        attackers = list(self.closest_planets(5, next_attack_planet, dists))
-        attackers.sort(key=lambda p: game.get_planet_by_id(p).num_ships, reverse=True)
-        remaining_ships = planet_df.loc[planet_df.planet_id==next_attack].num_ships.iloc[0]
-        if remaining_ships > 0:
-            for p in attackers:
-                ships = min(remaining_ships, planet_df.num_ships.iloc[p] - 1)
-                orders.append(Order(p, next_attack, ships))
-                remaining_ships -= ships
-                planet_df.loc[planet_df.planet_id==p,'num_ships'] -= ships
+        next_attack_list = self.closest_planets(num_attack, center, dists)
+        for next_attack in next_attack_list:
+        #next_attack = max(next_attack_list, key=lambda p: planet_df.iloc[p].growth_rate)
+            df_mine = planet_df.loc[(planet_df.owner==1) | (planet_df.planet_id==next_attack)]
+            dists = self.get_dist_mat(df_mine)
+            next_attack_planet = game.get_planet_by_id(next_attack)
+            attackers = list(self.closest_planets(num_attackers, next_attack_planet, dists))
+            attackers.sort(key=lambda p: game.get_planet_by_id(p).num_ships, reverse=True)
+            remaining_ships = planet_df.loc[planet_df.planet_id==next_attack].num_ships.iloc[0]
+            if remaining_ships > 0:
+                for p in attackers:
+                    ships = min(remaining_ships, planet_df.num_ships.iloc[p] - 1)
+                    orders.append(Order(p, next_attack, ships))
+                    remaining_ships -= ships
+                    planet_df.loc[planet_df.planet_id==p,'num_ships'] -= ships
         return orders
+
+    def attack_neutral(self, planet_df, center,game, num_attack, num_attackers):
+        orders=[]
+        df_enemey = planet_df.loc[(planet_df.owner==0) | (planet_df.planet_id==center.planet_id)]
+        dists = self.get_dist_mat(df_enemey)
+        next_attack_list = self.closest_planets(num_attack, center, dists)
+        for next_attack in next_attack_list:
+        #next_attack = max(next_attack_list, key=lambda p: planet_df.iloc[p].growth_rate)
+            df_mine = planet_df.loc[(planet_df.owner==1) | (planet_df.planet_id==next_attack)]
+            dists = self.get_dist_mat(df_mine)
+            next_attack_planet = game.get_planet_by_id(next_attack)
+            attackers = list(self.closest_planets(num_attackers, next_attack_planet, dists))
+            attackers.sort(key=lambda p: game.get_planet_by_id(p).num_ships, reverse=True)
+            remaining_ships = planet_df.loc[planet_df.planet_id==next_attack].num_ships.iloc[0]
+            if remaining_ships > 0:
+                for p in attackers:
+                    ships = min(remaining_ships, planet_df.num_ships.iloc[p] - 1)
+                    orders.append(Order(p, next_attack, ships))
+                    remaining_ships -= ships
+                    planet_df.loc[planet_df.planet_id==p,'num_ships'] -= ships
+        return orders
+
     def get_dist_mat(self, planet_df):
         x_diff = planet_df.x.to_numpy() - np.expand_dims(planet_df.x.to_numpy(), axis=-1)
         y_diff = planet_df.y.to_numpy() - np.expand_dims(planet_df.y.to_numpy(), axis=-1)
@@ -112,10 +136,11 @@ class DontBeMean(Player):
         for i in range(new_fleets_attacking_me.shape[0]):
             fleet = new_fleets_attacking_me.iloc[i]
             attacked = fleet['destination_planet_id']
-            close_enough = dists.loc[dists.iloc[attacked] < fleet.turns_remaining].index
+            attacked_dists=dists[attacked]
+            close_enough = attacked_dists[attacked_dists < fleet.turns_remaining].index
             close_enough_mine = list(set(not_attacked) & set(close_enough))
             close_enough_mine.sort(key=lambda p: game.get_planet_by_id(p).num_ships, reverse=True)
-            remaining_ships = fleet.num_ships - planet_df.num_ships.iloc[attacked]
+            remaining_ships = fleet.num_ships - game.get_planet_by_id(attacked).num_ships
             if remaining_ships > 0:
                 for p in close_enough_mine:
                     ships = min(remaining_ships, planet_df.num_ships.iloc[p] - 1)
@@ -123,15 +148,3 @@ class DontBeMean(Player):
                     remaining_ships -= ships
                     planet_df.loc[planet_df.planet_id==p,'num_ships'] -= ships
         return orders
-
-
-
-
-
-# defense
-#check how is under attack and how is not under attack.
-#take fleets from places that not another attack and send to defense.
-
-#steal
-
-

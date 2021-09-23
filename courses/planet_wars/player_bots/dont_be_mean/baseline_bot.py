@@ -3,6 +3,8 @@ from typing import Iterable, List
 
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.player_bots.dont_be_mean.dont_be_mean_bot import DontBeMean
+from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
+from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderTheHoodBot
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
 
 import pandas as pd
@@ -106,7 +108,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(DontBeMean(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    run_and_view_battle(DontBeMean(), UnderTheHoodBot(), map_str)
 
 
 def test_bot():
