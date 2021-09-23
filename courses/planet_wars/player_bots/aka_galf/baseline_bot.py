@@ -256,14 +256,14 @@ class galfFinals(Player):
 
     @staticmethod
     def set_rates(otherPlanetsDF, planet, game):
-        growth_weight = 1
+        growth_weight = 50
         ships_weight = 1
-        dist_weight = 1000000
+        dist_weight = 50
 
         planetsDF = otherPlanetsDF.copy()
         # print(planetsDF.apply(lambda x: FirstBot.get_distance_by_DF(planet, x['planet_id'], game), axis=1))
         planetsDF['dist'] = planetsDF.apply(lambda x: galfFinals.get_distance_by_DF(planet, x['planet_id'], game), axis=1)
-        planetsDF['reqships'] = planetsDF.apply(lambda x: SmartSendBot.set_num_ships(x), axis=1)
+        planetsDF['reqships'] = planetsDF.apply(lambda x: galfFinals.set_num_ships(x), axis=1)
         # planetsDF = planetsDF[planetsDF['reqships'] < planet.num_ships]
         planetsDF['rank'] = planetsDF['growth_rate'] * growth_weight - planetsDF['reqships'] * ships_weight - planetsDF[
             'dist'] * dist_weight
@@ -277,7 +277,7 @@ class galfFinals(Player):
         return Order(
             source_planet,
             int(best_option['planet_id']),
-            best_option.num_ships + 1
+            best_option.reqships + 1
         )
 
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
@@ -304,21 +304,34 @@ class galfFinals(Player):
 
         for planet in ourPlanetsDF:
             negShips = 0
-            if planet.num_ships - negShips < 30:
-                continue
-            counter = 0
-            df = otherPlanetsDF.copy()
-            while counter < (len(df) // 2):
-                currDF = SmartSendBot.set_rates(df, planet, game)
-                currDF.sort_values(by='rank', ascending=False, inplace=True)
-                currOrder = SmartSendBot.set_order_to_kill_only_first(currDF, planet, counter, negShips)
-                counter += 1
+            if game.turns < 100:
+                counter = 0
+                df = otherPlanetsDF.copy()
+                while counter < (len(df) // 2):
+                    currDF = galfFinals.set_rates(df, planet, game)
+                    currDF.sort_values(by='rank', ascending=False, inplace=True)
+                    currOrder = galfFinals.set_order_to_kill_only_first(currDF, planet, counter, negShips)
+                    counter += 1
 
-            # print(currDF)
-                if currOrder != None:
-                    orders.append(currOrder)
-                    negShips += currOrder.num_ships
-
+                # print(currDF)
+                    if currOrder != None:
+                        orders.append(currOrder)
+                        negShips += currOrder.num_ships
+            else:
+                origin_planets = [fleet.source_planet_id for fleet in game.get_fleets_by_owner(2)]
+                counter = 0
+                df = otherPlanetsDF.copy()
+                while counter < len(df):
+                    df['dist'] = df.apply(lambda x: galfFinals.get_distance_by_DF(planet, x['planet_id'], game), axis=1)
+                    df['reqships'] = df.apply(lambda x: galfFinals.set_num_ships(x), axis=1)
+                    df['fleets'] = df.apply(lambda x: x.planet_id in origin_planets, axis=1)
+                    df = df[df['fleets'] == True]
+                    df.sort_values(by='reqships', ascending=True, inplace=True)
+                    currOrder = galfFinals.set_order_to_kill_only_first(df, planet, counter, negShips)
+                    counter += 1
+                    if currOrder != None:
+                        orders.append(currOrder)
+                        negShips += currOrder.num_ships
 
         # maybe later Todo: split our planets to different attacks
         # listOfGroupPlanets = split_planets(ourPlanetsDF)
@@ -423,7 +436,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(PLAYER_BOTS[3], SmartSendBot(), map_str)
+    run_and_view_battle(PLAYER_BOTS[6], galfFinals(), map_str)
 
 
 def test_bot():
@@ -433,12 +446,10 @@ def test_bot():
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = AttackWeakestPlanetFromStrongestBot()
+    player_bot_to_test = galfFinals()
     tester = TestBot(
         player=player_bot_to_test,
-        competitors=[
-            AttackEnemyWeakestPlanetFromStrongestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
-        ],
+        competitors=[PLAYER_BOTS[3],PLAYER_BOTS[6]],
         maps=maps
     )
     tester.run_tournament()
@@ -457,4 +468,5 @@ def test_bot():
 
 if __name__ == "__main__":
     #test_bot()
-    view_bots_battle()
+    for i in range(10):
+        view_bots_battle()
