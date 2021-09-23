@@ -46,8 +46,13 @@ class Bot1(Player):
                     continue
                 if Planet.distance_between_planets(help_planet, need_help) >= turns_to_first_attack:
                     continue
-                helpers.append((help_planet, min(0.65 * help_planet.num_ships, planet_need)))
-                size_of_help += min(0.65 * help_planet.num_ships, planet_need)
+
+                percent = 0.65
+                helpers.append((help_planet, min(int(percent * help_planet.num_ships), planet_need)))
+                size_of_help += min(int(percent * help_planet.num_ships), planet_need)
+                if size_of_help > planet_need * 1.25:
+                    continue
+
 
             if size_of_help >= planet_need:
                 for help_planet, amount in helpers:
@@ -55,13 +60,41 @@ class Bot1(Player):
 
         return orders
 
-    def go_to_closest(self, game: PlanetWars) ->Iterable[Order]:
+
+    def elusive(self, game:PlanetWars):
+        orders = []
+        for my_planet in game.get_planets_by_owner(PlanetWars.ME):
+
+            is_attacked = False
+            attack_force = 0
+            for attacking_fleet in game.get_fleets_by_owner(PlanetWars.ENEMY):
+                if attacking_fleet.destination_planet_id == my_planet.planet_id and attacking_fleet.turns_remaining <= 1:
+                    is_attacked = True
+                    attack_force += attacking_fleet.num_ships
+
+            if not is_attacked or attack_force <= my_planet.num_ships + my_planet.growth_rate:
+                return []
+
+            for incoming_help in game.get_fleets_by_owner(game.ME):
+                if incoming_help.destination_planet_id == my_planet.planet_id:
+                    return []
+
+            for run_to in game.get_planets_by_owner(PlanetWars.ME):
+                if my_planet == run_to:
+                    continue
+                else:
+                    orders.append(Order(my_planet, run_to, my_planet.num_ships))
+
+    def go_to_closest(self, game: PlanetWars, defensive_planets) ->Iterable[Order]:
+
         minimum_in_planet = 20
         planets_i_sent_to = [f.destination_planet_id for f in game.get_fleets_by_owner(owner=PlanetWars.ME)]
         planets = game.get_planets_by_owner(owner=PlanetWars.NEUTRAL) + game.get_planets_by_owner(
             owner=PlanetWars.ENEMY)
         planets = [p for p in planets if p.planet_id not in planets_i_sent_to]
-        my_planets = [p for p in game.get_planets_by_owner(owner=PlanetWars.ME) if p.num_ships > minimum_in_planet]
+
+        my_planets = [p for p in game.get_planets_by_owner(owner=PlanetWars.ME) if p.num_ships > minimum_in_planet and p.planet_id not in defensive_planets]
+
         orders = []
         for mp in my_planets:
             to_delete = set()
@@ -71,11 +104,11 @@ class Bot1(Player):
                 neutral = p.owner == PlanetWars.NEUTRAL
                 threshold = p.num_ships if neutral else p.num_ships + (Planet.distance_between_planets(mp, p) * p.growth_rate)
                 if threshold < free_ships:
-                    free_ships -= p.num_ships + 1
+                    free_ships -= threshold + 1
                     orders.append(Order(
                         mp,
                         p,
-                        p.num_ships + 1)
+                        threshold + 1)
                     )
                     planets_i_sent_to.append(p.planet_id)
                     to_delete.add(p)
@@ -85,6 +118,10 @@ class Bot1(Player):
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
         orders = []
         orders += self.help_planets_need_help(game)
-        if not orders:
-            return self.go_to_closest(game)
+
+        elusive_orders = self.elusive(game)
+        defensive_planets = [order.destination_planet_id for order in orders] + [order.source_planet_id for order in orders] + [order.source_planet_id for order in elusive_orders]
+        orders += elusive_orders
+        orders += self.go_to_closest(game, defensive_planets)
+
         return orders
