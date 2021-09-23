@@ -122,7 +122,7 @@ class BestBotInGalaxy(Player):
         return False
 
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
-        if game.turns < 25:
+        if game.turns < 3:
             orders = []
             for planet in game.get_planets_by_owner(owner=game.ME):
                 sorted_other_planets = sorted(game.get_planets_by_owner(owner=0), key=lambda x: Planet.distance_between_planets(x, planet))
