@@ -127,6 +127,15 @@ class UnderTheHoodBot(Player):
         possible_attacks = possible_attacks.loc[False == ((possible_attacks['growth_rate'] < our_planet.growth_rate) & (possible_attacks['total_ships'] > our_planet.num_ships*0.5))]
         return possible_attacks
 
+    def defend(self, my_planets, all_fleets):
+        atk_fleets_group = all_fleets[all_fleets['owner']==2].groupby('destination_planet_id', ).sum()
+        dfnd_fleets_group = all_fleets[all_fleets['owner'] == 1].groupby('destination_planet_id').sum()
+
+        for planet in my_planets:
+            pass
+        return
+
+
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
         """
         See player.play_turn documentation.
@@ -170,7 +179,7 @@ class UnderTheHoodBot(Player):
                 total_ships = planet_to_attack.num_ships + (
                             planet_to_attack.owner * 0.5 * planet_to_attack.growth_rate * dist_to_attack)
                 if total_ships < our_planet.num_ships:
-                    score = planet_to_attack.growth_rate * (1 + (planet_to_attack.owner == 2 * 0.5)) / (
+                    score = planet_to_attack.growth_rate * (1 + (planet_to_attack.owner == 2 * 0.7)) / (
                                 dist_to_attack * total_ships)
                     possible_attacks = possible_attacks.append(
                         {'dest': planet_to_attack.planet_id, 'total_ships': total_ships, 'score': score,
@@ -178,15 +187,15 @@ class UnderTheHoodBot(Player):
                          'growth_rate': planet_to_attack.growth_rate},
                         ignore_index=True)
 
-            if len(possible_attacks):
-               possible_attacks = self.filter_possible_attacks(possible_attacks, our_planet)
+            #if len(possible_attacks):
+            #   possible_attacks = self.filter_possible_attacks(possible_attacks, our_planet)
 
             if len(possible_attacks):
                 possible_attacks.sort_values(by='score', inplace=True, ascending=False)
                 attack = possible_attacks.iloc[[0]]
                 Orders.append(Order(our_planet.planet_id,
                                     attack['dest'].iloc[0],
-                                    max((attack['total_ships'].iloc[0] * (1 + 0.2 + attack['owner'].iloc[0] * 0.1)), our_planet.num_ships)))
+                                    max((attack['total_ships'].iloc[0] * (1 + 0.2 + attack['owner'].iloc[0] * 0.2)), our_planet.num_ships)))
 
         # enemy_or_neutral_weakest_planet = min(planets_to_attack, key=lambda planet: planet.num_ships)
 
