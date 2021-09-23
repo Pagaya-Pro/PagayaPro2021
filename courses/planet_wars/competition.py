@@ -9,6 +9,7 @@ from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderThe
 from courses.planet_wars.tournament import Tournament, get_map_by_id
 import warnings
 import pandas as pd
+from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
 
 # Insert Your bot object here, as BotObject(). Don't forget to set BotObject.NAME to your team name
 PLAYER_BOTS = [
