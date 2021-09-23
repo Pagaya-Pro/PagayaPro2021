@@ -1,5 +1,14 @@
 import random
 from typing import Iterable, List
+from courses.planet_wars.player_bots.data_campers.best_bot_in_galaxy import BestBotInGalaxy
+from courses.planet_wars.player_bots.ender.EnderBot import EnderBot
+from courses.planet_wars.player_bots.fun_with_flags.baseline_bot import NerdBot
+from courses.planet_wars.player_bots.kong_fu_pandas.baseline_bot import KongFuSyrianPandas
+from courses.planet_wars.player_bots.rocket_league.baseline_bot import rocket_league_bot
+from courses.planet_wars.player_bots.rubber_ducks.Bot1 import Bot1
+from courses.planet_wars.player_bots.space_pirates.baseline_bot import Firstroundstrategy
+from courses.planet_wars.player_bots.under_the_hood.baseline_bot import UnderTheHoodBot
+from courses.planet_wars.tournament import Tournament, get_map_by_id
 
 from courses.planet_wars.planet_wars import Player, PlanetWars, Order, Planet
 from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, TestBot
@@ -98,18 +107,24 @@ class BestBot(Player):
         self.opponent_growth = sum([planet.growth_rate for planet in opponent_planets])
     '''
 
-    def ships_to_send_in_a_flee(self, source_planet: Planet, dest_planet: Planet) -> int:
-        if dest_planet.owner == 0:
-            enemy_planet = dest_planet.num_ships
-            if (source_planet.num_ships > enemy_planet):
-                return enemy_planet + 1
-            return 0
-        if dest_planet.owner == 2:
-            on_arrival = dest_planet.num_ships + Planet.distance_between_planets(source_planet,
-                                                                                 dest_planet) * dest_planet.growth_rate
-            if source_planet.num_ships > on_arrival + 1:
-                return on_arrival
-        return 0
+    def ships_to_send_in_a_flee(self, source_planet_lst, dest_planet_lst) -> int:
+        res = []
+        for i in range(len(source_planet_lst)):
+            if dest_planet_lst[i].owner == 0:
+                enemy_planet = dest_planet_lst[i].num_ships
+                if (source_planet_lst[i].num_ships > enemy_planet):
+                    res.append(enemy_planet + 1)
+                    continue
+                res.append(0)
+                continue
+            if dest_planet_lst[i].owner == 2:
+                on_arrival = dest_planet_lst[i].num_ships + Planet.distance_between_planets(source_planet_lst[i],
+                                                                                 dest_planet_lst[i]) * dest_planet_lst[i].growth_rate
+                if source_planet_lst[i].num_ships > on_arrival + 2:
+                    res.append(on_arrival)
+                    continue
+            res.append(0)
+        return res
 
     def get_planets_to_attack(self, game: PlanetWars) -> List[Planet]:
         """
@@ -165,31 +180,31 @@ class BestBot(Player):
 
         if len(game.get_fleets_data_frame()) > 0:
             res += self.stealing_neutral_planets(game)
-            if len(res) > 0:
-                return res
 
         # (2) Find my strongest planet.
         my_planets = game.get_planets_by_owner(owner=PlanetWars.ME)
+        planets_to_attack = self.get_planets_to_attack(game)
         if len(my_planets) == 0:
             return []
-        my_strongest_planet = max(my_planets, key=lambda planet: planet.num_ships)
+        my_strongest_planet = sorted(my_planets, key=lambda planet: planet.num_ships, reverse=True)[:min(3,len(my_planets),len(planets_to_attack))]
 
         # (3) Find the weakest enemy or neutral planet.
-        planets_to_attack = self.get_planets_to_attack(game)
         if len(planets_to_attack) == 0:
             return []
-        enemy_or_neutral_weakest_planet = min(planets_to_attack, key=lambda planet: planet.num_ships)
+        enemy_or_neutral_weakest_planet = sorted(planets_to_attack, key=lambda planet: planet.num_ships)[:min(3,len(my_planets),len(planets_to_attack))]
 
         how_many = self.ships_to_send_in_a_flee(my_strongest_planet, enemy_or_neutral_weakest_planet)
-        if how_many == 0:
+        if len(how_many) == 0:
             return []
 
+        res += [Order(
+            my_strongest_planet[i],
+            enemy_or_neutral_weakest_planet[i],
+            how_many[i]
+        ) for i in range(min(3,len(my_planets),len(planets_to_attack)))]
+
         # (4) Send half the ships from my strongest planet to the weakest planet that I do not own.
-        return [Order(
-            my_strongest_planet,
-            enemy_or_neutral_weakest_planet,
-            how_many
-        )]
+        return res
 
 
 def get_random_map():
@@ -208,7 +223,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(BestBot(), AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), map_str)
+    run_and_view_battle(BestBot(), KongFuSyrianPandas(), map_str)
 
 
 def test_bot():
@@ -222,7 +237,8 @@ def test_bot():
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot()
+            AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(), NerdBot(),
+            EnderBot(), rocket_league_bot(), UnderTheHoodBot(), KongFuSyrianPandas(), BestBotInGalaxy()
         ],
         maps=maps
     )
