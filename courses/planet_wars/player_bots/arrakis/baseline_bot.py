@@ -146,3 +146,17 @@ class BestBot(Player):
 
     def __init__(self):
         return self
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+        get_state(self, game)
+
+    def get_state(self, game: PlanetWars):
+        self.num_ships = game.total_ships_by_owner(game.ME)
+        self.opponent_ships = game.total_ships_by_owner(game.ENEMY)
+        my_planets = game.get_planets_by_owner(game.ME)
+        opponent_planets = game.get_planets_by_owner(game.ENEMY)
+        self.total_growth = sum([planet.growth_rate for planet in my_planets])
+        self.opponent_growth = sum([planet.growth_rate for planet in opponent_planets])
+
+    def stealing_neutral_planets(self, game: PlanetWars):
+        planets_under_attack = get_fleets_by_owner()
