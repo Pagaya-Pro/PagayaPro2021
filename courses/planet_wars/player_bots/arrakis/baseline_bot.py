@@ -6,7 +6,6 @@ from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, T
 
 import pandas as pd
 
-
 class AttackWeakestPlanetFromStrongestBot(Player):
     """
     Example of very simple bot - it send flee from its strongest planet to the weakest enemy/neutral planet
@@ -139,3 +138,11 @@ def test_bot():
 if __name__ == "__main__":
     test_bot()
     view_bots_battle()
+
+class BestBot(Player):
+    "Arrakis Bot"
+
+    NAME = "Arrakis"
+
+    def __init__(self):
+        return self
