@@ -50,7 +50,6 @@ class AttackWeakestPlanetFromStrongestBot(Player):
             self.ships_to_send_in_a_flee(my_strongest_planet, enemy_or_neutral_weakest_planet)
         )]
 
-
 class AttackEnemyWeakestPlanetFromStrongestBot(AttackWeakestPlanetFromStrongestBot):
     """
     Same like AttackWeakestPlanetFromStrongestBot but attacks only enemy planet - not neutral planet.
@@ -86,21 +85,10 @@ class AttackWeakestPlanetFromStrongestSmarterNumOfShipsBot(AttackWeakestPlanetFr
         return original_num_of_ships
 
 class BestBot(Player):
-    "Arrakis Bot"
 
-    NAME = "Arrakis"
+    NAME = 'Arrakis'
 
-    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
-
-        self.get_state(game)
-        self.game = game
-        res = []
-
-        if len(game.get_fleets_data_frame()) > 0:
-            res += self.stealing_neutral_planets(game)
-
-        return res
-
+    '''
     def get_state(self, game: PlanetWars):
         self.num_ships = game.total_ships_by_owner(game.ME)
         self.opponent_ships = game.total_ships_by_owner(game.ENEMY)
@@ -108,22 +96,34 @@ class BestBot(Player):
         opponent_planets = game.get_planets_by_owner(game.ENEMY)
         self.total_growth = sum([planet.growth_rate for planet in my_planets])
         self.opponent_growth = sum([planet.growth_rate for planet in opponent_planets])
+    '''
 
-    def relevant_attacks(self, fleet_row):
-        game = self.game
-        our_planets = game.get_planets_data_frame()
-        our_planets = our_planets[our_planets['owner'] == game.ME].set_index('planet_id')
-        remaining = fleet_row['turns_remaining']
-        attacked_planet = game.get_planet_by_id(fleet_row['destination_planet_id'])
-        res = []
-        for planet_id, row in our_planets.iterrows():
-            our_planet = game.get_planet_by_id(planet_id)
-            dist = distance_between_plantes(our_planet, attacked_planet)
-            if (dist - remaining == 1):
-                res.append(our_planet)
-                print(our_planet)
+    def ships_to_send_in_a_flee(self, source_planet: Planet, dest_planet: Planet) -> int:
+        if dest_planet.owner == 0:
+            enemy_planet = dest_planet.num_ships
+            if(source_planet.num_ships > enemy_planet):
+                return enemy_planet+1
+            return 0
+        if dest_planet.owner == 2:
+            on_arrival = dest_planet.num_ships + Planet.distance_between_planets(source_planet,dest_planet)*dest_planet.growth_rate
+            if source_planet.num_ships > on_arrival +1:
+                return on_arrival
+        return 0
 
-        return tuple(res)
+    def get_planets_to_attack(self, game: PlanetWars) -> List[Planet]:
+        """
+        :param game: PlanetWars object representing the map
+        :return: The planets we need to attack
+        """
+        possible_planets = [p for p in game.planets if p.owner != PlanetWars.ME]
+        possible_planets = sorted(possible_planets, key = lambda x: x.owner, reverse = True)
+        fleets_omw = game.get_fleets_by_owner(game.ME)
+        planets_omw = [f.destination_planet_id for f in fleets_omw]
+        ans = []
+        for planet in possible_planets:
+            if planet.planet_id not in planets_omw:
+                ans.append(planet)
+        return ans
 
     def attacking_planet_by_radius(self, planet: Planet, radius: int):
         game = self.game
@@ -155,6 +155,39 @@ class BestBot(Player):
                 row['total_after_conquer'] + 6))
 
         return res
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+
+        self.game = game
+        res = []
+
+        if len(game.get_fleets_data_frame()) > 0:
+            res += self.stealing_neutral_planets(game)
+            if len(res) > 0:
+                return res
+
+        # (2) Find my strongest planet.
+        my_planets = game.get_planets_by_owner(owner=PlanetWars.ME)
+        if len(my_planets) == 0:
+            return []
+        my_strongest_planet = max(my_planets, key=lambda planet: planet.num_ships)
+
+        # (3) Find the weakest enemy or neutral planet.
+        planets_to_attack = self.get_planets_to_attack(game)
+        if len(planets_to_attack) == 0:
+            return []
+        enemy_or_neutral_weakest_planet = min(planets_to_attack, key=lambda planet: planet.num_ships)
+
+        how_many = self.ships_to_send_in_a_flee(my_strongest_planet, enemy_or_neutral_weakest_planet)
+        if how_many ==0:
+            return []
+
+        # (4) Send half the ships from my strongest planet to the weakest planet that I do not own.
+        return [Order(
+            my_strongest_planet,
+            enemy_or_neutral_weakest_planet,
+            how_many
+        )]
 
 def get_random_map():
     """
