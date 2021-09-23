@@ -8,6 +8,8 @@ import pandas as pd
 
 
 class BestBotInGalaxy(Player):
+    NAME = "data_campers"
+
     def get_ordered_planets(self, game, target_planet_id):
         #The planets this function gets are in IDs
         our_planets = game.get_planets_by_owner(owner=game.ME)
