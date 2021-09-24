@@ -137,14 +137,14 @@ class KongFuSyrianPandas(Player):
 
     def get_planet_score(self,my_planet,target_planet,num_ships_on_way):
 
-        weights = {'growth_rate':8,'distance':-0.6,'ships':-0.4,'is_enemy':3}
+        weights = {'growth_rate':15,'distance':-2,'ships':0.5,'is_enemy':5}
 
-        growth_rate = target_planet.growth_rate
-        distance = self.get_dist(my_planet,target_planet)
-        ships = target_planet.num_ships + num_ships_on_way
+        growth_rate_score = (target_planet.growth_rate / max(my_planet.growth_rate,0.1)) * weights['growth_rate']
+        distance_score = self.get_dist(my_planet,target_planet) * weights['distance']
+        ships_score = target_planet.num_ships + num_ships_on_way * weights['ships']
         is_enemy = target_planet.owner == PlanetWars.ENEMY
 
-        temp_score = (growth_rate * weights['growth_rate'] + distance * weights['distance'] + ships * weights['ships'])
+        temp_score = growth_rate_score + distance_score + ships_score
         if temp_score < 0:
             temp_score = 0
         if is_enemy:
@@ -152,7 +152,7 @@ class KongFuSyrianPandas(Player):
                 return weights['is_enemy']*temp_score
             else:
                 return temp_score / weights['is_enemy']
-
+        print(temp_score)
         return temp_score
 
 
@@ -161,15 +161,18 @@ class KongFuSyrianPandas(Player):
 
     def ships_to_send_in_a_fleet(self, source_planet: Planet, dest_planet: Planet,game: PlanetWars) -> int:
 
-        expected_defence = dest_planet.num_ships + 3
+        num_ships_on_the_way = min(0,int(self.calc_num_ships_on_the_way(dest_planet, game)))
+
+        expected_defence = dest_planet.num_ships + 1
 
         if dest_planet in self.get_enemy_planets(game):
-            expected_defence += dest_planet.growth_rate * self.get_dist(source_planet,dest_planet) + 3
+            expected_defence += dest_planet.growth_rate * Planet.distance_between_planets(source_planet,
+                                                                             dest_planet) + 4
 
 
         if source_planet.num_ships < expected_defence:
             return None
-        return int(round(min(source_planet.num_ships-5,expected_defence)))
+        return int(round(expected_defence + num_ships_on_the_way))
 
     def calc_num_ships_on_the_way(self,dest_planet,game: PlanetWars):
         my_fleets = self.get_my_fleets(game)
@@ -297,17 +300,19 @@ class KongFuSyrianPandas(Player):
                             best_move[0],
                             best_move[1],
                             ships_to_send))
+
                 best_move[0].num_ships -= ships_to_send
                 temp_scores = []
                 scores.remove(best_move)
                 for score in scores:
                     if  (score[1] == best_move[1]):
-                        score[2] = score[2]/10
+                        score[2] = score[2] - 1000
                     temp_scores.append(score)
                 scores = temp_scores
             else:
                 scores.remove(best_move)
-
+        if(len(orders) == 0):
+            print("no orders")
         return orders
 
 
@@ -315,6 +320,7 @@ class KongFuSyrianPandasTest(KongFuSyrianPandas):
 
     NAME = "KongFuSyrianPandasTest"
     IS_FIRST_TURN = True
+    KAMIKAZE_FIRST_ATTACK = 0.61
     def play_turn(self, game: PlanetWars) -> Iterable[Order]:
         """
         See player.play_turn documentation.
@@ -338,7 +344,7 @@ class KongFuSyrianPandasTest(KongFuSyrianPandas):
         if (len(self.get_enemy_planets(game)) > 0):
             enemy_strongest_planet = max(self.get_enemy_planets(game), key=lambda planet: planet.num_ships)
 
-            if my_total_num_of_ships > 0.5 * enemy_strongest_planet.num_ships:
+            if my_total_num_of_ships > 2 * enemy_strongest_planet.num_ships:
                 # print("Mother Russia Mode!")
                 ships_sent = 0
                 for i in range(len(my_planets)):
@@ -359,9 +365,9 @@ class KongFuSyrianPandasTest(KongFuSyrianPandas):
                 PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ME].planet_id.values)
             enemy_planet = game.get_planet_by_id(
                 PlanetDataFrame.loc[PlanetDataFrame.owner == PlanetWars.ENEMY].planet_id.values)
-            if (self.get_dist(my_planet, enemy_planet) <= 1.5):
+            if (self.get_dist(my_planet, enemy_planet) <= 2):
                 print("We have used kamikaza")
-                return Order(my_planet, enemy_planet, KAMIKAZE_FIRST_ATTACK * my_planet.num_ships)
+                return Order(my_planet, enemy_planet, int(KAMIKAZE_FIRST_ATTACK * my_planet.num_ships))
 
         for my_planet in my_planets:
             for dest_planet in enemy_and_natural_planets:
@@ -404,7 +410,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(KongFuSyrianPandas(), PrincessesBot(), map_str)
+    run_and_view_battle(KongFuSyrianPandas(), UnderTheHoodBot(), map_str)
 
 
 def test_bot():
@@ -414,12 +420,13 @@ def test_bot():
     So is AttackWeakestPlanetFromStrongestBot worse than the 2 other bots? The answer might surprise you.
     """
     maps = [get_random_map(), get_random_map()]
-    player_bot_to_test = KongFuSyrianPandas()
+    player_bot_to_test = KongFuSyrianPandasTest()
     tester = TestBot(
         player=player_bot_to_test,
         competitors=[
-            EnderBot(), rocket_league_bot(), UnderTheHoodBot(),
-            BestBotInGalaxy(),PrincessesBot()
+            EnderBot(),
+            # rocket_league_bot(), UnderTheHoodBot(),
+            # BestBotInGalaxy(),PrincessesBot()
         ],
         maps=maps
     )
@@ -438,5 +445,5 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    test_bot()
-    # view_bots_battle()
+    # test_bot()
+    view_bots_battle()
