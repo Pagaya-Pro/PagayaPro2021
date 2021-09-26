@@ -94,4 +94,15 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
         # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
 
 
+def division(x, y):
+    return x / y
+
+
+def test_division_raise_zero_divition_error():
+    pass  # TODO check that multiply raise zero division error when
+
+
 # TODO Add a function and at least 3 tests
+
+# TODO add a function that get data frame as an argument and return it after some preprocess/change
+# TODO test the function you wrote use assert_frame_equal and assert_series_equal
