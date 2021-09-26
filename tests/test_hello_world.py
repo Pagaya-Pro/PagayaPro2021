@@ -8,6 +8,7 @@ import random
 from typing import Union
 from typing import List
 
+import pandas as pd
 import pytest
 
 
@@ -74,17 +75,18 @@ def please_test_me(string: str) -> str:
     return string + "!!!"
 
 
+def test_please_test_me():
+    assert please_test_me("testing is great") == "testing is great!!!"
+
+
 def times_7(number: Union[int, float]):
     return number * 7
 
 
 # TODO make_me_2_functions_one_use_fixture_and_one_use_parametrize
-def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
-    assert times_7(2) == 14
-    assert times_7(4) == 28
-    assert times_7(0) == 0
-    assert times_7(-1) == -7
-    # TODO add one interesting case I didn't check
+@pytest.mark.parametrize("multiply, expected_result", [(2, 14), (4, 28), (0, 0), (-1, -7), (0.5, 3.5)])
+def test_make_me_2_functions_one_use_parametrize(multiply, expected_result):
+    assert times_7(multiply) == expected_result
 
     random_generator = random.Random()
     for i in range(10):
@@ -93,12 +95,49 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
         # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
+        # The above assertion doesn't work because for negative values, multiplying by 7 isn't greater than the original number
+
+@pytest.fixture
+def time_7_number():
+    return [(2, 14), (4, 28), (0, 0), (-1, -7), (0.5, 3.5)]
+
+def test_make_me_2_functions_one_use_fixture(time_7_number):
+    for num_pair in time_7_number:
+        assert times_7(num_pair[0]) == num_pair[1]
 
 
 # TODO Add a function and at least 3 tests
+def my_factorial(n: int):
+    if n < 0:
+        raise ValueError("Value must be zero or positive")
+    f = 1
+    for i in range(1,n+1):
+        f *= i
+    return f
+
+
+@pytest.mark.parametrize("number", [0, 1, 4])
+def test_my_factorial(number):
+    from math import factorial
+    assert my_factorial(number) == factorial(number)
+
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
+def sum_group_by_first_col(df):
+    return df.groupby(df.columns[0]).sum()
+
+
 # TODO test the function you wrote use assert_frame_equal and assert_series_equal
+@pytest.fixture
+def test_df():
+    return pd.DataFrame({'Team': [0, 1, 1, 2, 1, 3, 2], 'earned': [1, 1, 2, 1, 1, 2, 1]})
+
+
+def test_sum_group_by_first_col(test_df):
+    expected_values = pd.DataFrame({'Team': [0, 1, 2, 3], 'earned': [1, 4, 2, 2]}).set_index('Team')
+    expected_series = pd.Series({0: 1, 1: 4, 2: 2, 3: 2}, name='earned')
+    pd.testing.assert_frame_equal(sum_group_by_first_col(test_df), expected_values)
+    pd.testing.assert_series_equal(sum_group_by_first_col(test_df).reset_index(drop=True).squeeze(), expected_series)
 
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
@@ -106,4 +145,5 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
 
 
 def test_weighted_average_raise_zero_division_error():
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    with pytest.raises(ZeroDivisionError):
+        assert compute_weighted_average(x=[1, 2, 3, 4], w=[1, 2, -3])
