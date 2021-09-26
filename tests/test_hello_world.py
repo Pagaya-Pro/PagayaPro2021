@@ -96,7 +96,7 @@ def test_fixture(obj_fixture):
         # time_7(rnd_int) is like summing 7 items of rnd_int
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
-        assert times_7(rnd_int) > rnd_int  # Maybe rnd_int is a non positive number(zero or negative) and then
+        #assert times_7(rnd_int) > rnd_int  # Maybe rnd_int is a non positive number(zero or negative) and then
         # its not true.
 
 # TODO Add a function and at least 3 tests
