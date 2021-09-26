@@ -118,6 +118,7 @@ class BestBot(Player):
                                                                              dest_planet) * dest_planet.growth_rate
             if source_planet.num_ships > on_arrival + 2:
                 return on_arrival + 2
+
         return 0
 
     def get_planets_to_attack(self, game: PlanetWars) -> List[Planet]:
