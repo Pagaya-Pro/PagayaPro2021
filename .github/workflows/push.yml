@@ -16,7 +16,5 @@ jobs:
         python -m pip install -r requirements.txt
         python -m pip install -e .
     - name: GitHub Action for pytest
-      uses: cclauss/GitHub-Action-for-pytest@master
-      with:
-        args: pytest tests
-
+      run: |
+        python -m pytest tests
