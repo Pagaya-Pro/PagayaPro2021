@@ -5,8 +5,11 @@ You can learn about pytest here:
 https://www.guru99.com/pytest-tutorial.html
 """
 import random
-from typing import Union
+from typing import Union, List
+import pandas as pd
+import numpy as np
 
+import pandas as pd
 import pytest
 
 
@@ -72,6 +75,8 @@ def test_fibonacci_using_fixture(first_fibonacci_numbers):
 def please_test_me(string: str) -> str:
     return string + "!!!"
 
+def test_please_test_me():
+    assert please_test_me("testing is great") == "testing is great!!!"
 
 def times_7(number: Union[int, float]):
     return number * 7
@@ -84,6 +89,7 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
     assert times_7(0) == 0
     assert times_7(-1) == -7
     # TODO add one interesting case I didn't check
+    assert times_7(0.5) == 3.5
 
     random_generator = random.Random()
     for i in range(10):
@@ -91,18 +97,63 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
         # time_7(rnd_int) is like summing 7 items of rnd_int
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
-        # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
+@pytest.mark.parametrize("multiplier, result", [(2, 14), (4, 28), (0, 0), (-1, -7), (0.5, 3.5)])
+def test_times_7_parametrize(multiplier, result):
+    assert times_7(multiplier) == result
 
+@pytest.fixture
+def rand_num():
+    random_generator = random.Random()
+    return random_generator.randint(-1000, 1000)
+
+def test_times_7_fixture(rand_num):
+    for i in range(10):
+        rand = rand_num
+        assert times_7(rand) == sum([rand for i in range(7)])
+
+
+        # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
+                                # This assertion won't work because it's correct only for positive multipliers.
 
 # TODO Add a function and at least 3 tests
+def abs_value(num):
+    if num >= 0:
+        return num
+    else:
+        return -num
+
+def test_neg_abs_value():
+    assert abs_value(-1) == 1
+
+def test_zero_abs_value():
+    assert abs_value(0) == 0
+
+def test_pos_abs_value():
+    assert abs_value(6) == 6
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
 # TODO test the function you wrote use assert_frame_equal and assert_series_equal
 
+def increase_age(data):
+    data_2 = data.copy()
+    data_2['Age'] += 1
+    return data_2
 
+def test_multiply_values_by_2():
+    dictionary = dict(Make = ["Toyota", "Subaru", "Mercedes", "BMW", "Fiat"], Age = [10, 12, 27, 3, 1])
+    data = pd.DataFrame(dictionary)
+    data_2 = increase_age(data)
+    data["Age"] = data["Age"].apply(man_increase_age)
+    print(data)
+    pd.testing.assert_frame_equal(data, data_2)
+
+def man_increase_age(a):
+    return a + 1
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
 
 def test_weighted_average_raise_zero_division_error():
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    with pytest.raises(ZeroDivisionError):
+        assert compute_weighted_average([1, 0 ,1], [1, -1, 0])
+      # TODO check that weighted_average raise zero division error when the sum of the weights is 0
