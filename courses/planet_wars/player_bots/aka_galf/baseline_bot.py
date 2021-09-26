@@ -7,6 +7,324 @@ from courses.planet_wars.tournament import get_map_by_id, run_and_view_battle, T
 import pandas as pd
 
 
+class FirstBot(Player):
+
+    @staticmethod
+    def get_distance_by_DF(planet, planet_id ,game):
+        return Planet.distance_between_planets(planet, game.get_planet_by_id(planet_id))
+
+    @staticmethod
+    def set_num_ships(planet):
+        if planet['owner'] == 2:
+            return planet['growth_rate'] * planet['dist'] + planet.num_ships
+        else:
+            return planet.num_ships
+
+    @staticmethod
+    def set_rates(otherPlanetsDF, planet, game):
+        growth_weight = 1
+        ships_weight = 1
+        dist_weight = 10
+
+        planetsDF = otherPlanetsDF.copy()
+        # print(planetsDF.apply(lambda x: FirstBot.get_distance_by_DF(planet, x['planet_id'], game), axis=1))
+        planetsDF['dist'] = planetsDF.apply(lambda x: FirstBot.get_distance_by_DF(planet, x['planet_id'], game), axis=1)
+        planetsDF['reqships'] = planetsDF.apply(lambda x: FirstBot.set_num_ships(x), axis = 1)
+        #planetsDF = planetsDF[planetsDF['reqships'] < planet.num_ships]
+        planetsDF['rank'] = planetsDF['growth_rate'] * growth_weight - planetsDF['reqships'] * ships_weight - planetsDF['dist'] * dist_weight
+        return planetsDF
+
+    @staticmethod
+    def set_order_to_kill_only_first(df, source_planet):
+        if len(df) == 0:
+            return None
+        best_option = df.iloc[0]
+        return Order(
+            source_planet,
+            int(best_option['planet_id']),
+            source_planet.num_ships // 2
+        )
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+        """
+        See player.play_turn documentation.
+        :param game: PlanetWars object representing the map - use it to fetch all the planets and flees in the map.
+        :return: List of orders to execute, each order sends ship from a planet I own to other planet.
+        """
+        # self.__count_turn += 1
+        # Get and devide DF
+
+        allPlanetsDF = game.get_planets_data_frame()
+        allPlanetsDF = allPlanetsDF[allPlanetsDF['growth_rate'] > 0]
+        ourPlanetsDF = game.get_planets_by_owner(1)
+        # for p in ourPlanetsDF:
+        #     print(p.num_ships)
+
+        otherPlanetsDF = allPlanetsDF[allPlanetsDF['owner'] != 1]
+        if len(otherPlanetsDF) == 0:
+            return []
+        orders = []
+        # Todo: set rates to DF according to assafs algorithm
+        for planet in ourPlanetsDF:
+            if planet.num_ships < 30:
+                continue
+            df = otherPlanetsDF.copy()
+            currDF = FirstBot.set_rates(df, planet, game)
+            currDF.sort_values(by = 'rank', ascending = False, inplace = True)
+            currOrder = FirstBot.set_order_to_kill_only_first(currDF, planet)
+            #print(currDF)
+            if currOrder != None:
+                orders.append(currOrder)
+
+        # maybe later Todo: split our planets to different attacks
+        # listOfGroupPlanets = split_planets(ourPlanetsDF)
+        # maybe later Todo: attack enemy by groups of our planets
+
+        return orders
+
+class StrongGrowthBot(Player):
+
+    @staticmethod
+    def get_distance_by_DF(planet, planet_id, game):
+        return Planet.distance_between_planets(planet, game.get_planet_by_id(planet_id))
+
+    @staticmethod
+    def set_num_ships(planet):
+        if planet['owner'] == 2:
+            return planet['growth_rate'] * planet['dist'] + planet.num_ships
+        else:
+            return planet.num_ships
+
+    @staticmethod
+    def set_rates(otherPlanetsDF, planet, game):
+        growth_weight = game.turns + 1000 / (game.turns+1)
+        ships_weight = 1
+        dist_weight = 50
+
+        planetsDF = otherPlanetsDF.copy()
+        # print(planetsDF.apply(lambda x: FirstBot.get_distance_by_DF(planet, x['planet_id'], game), axis=1))
+        planetsDF['dist'] = planetsDF.apply(lambda x: StrongGrowthBot.get_distance_by_DF(planet, x['planet_id'], game), axis=1)
+        planetsDF['reqships'] = planetsDF.apply(lambda x: StrongGrowthBot.set_num_ships(x), axis=1)
+        # planetsDF = planetsDF[planetsDF['reqships'] < planet.num_ships]
+        planetsDF['rank'] = planetsDF['growth_rate'] * growth_weight - planetsDF['reqships'] * ships_weight - planetsDF[
+            'dist'] * dist_weight
+        return planetsDF
+
+    @staticmethod
+    def set_order_to_kill_only_first(df, source_planet):
+        if len(df) == 0 or source_planet.num_ships < 50:
+            return None
+        best_option = df.iloc[0]
+        return Order(
+            source_planet,
+            int(best_option['planet_id']),
+            source_planet.num_ships // 2
+        )
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+        """
+        See player.play_turn documentation.
+        :param game: PlanetWars object representing the map - use it to fetch all the planets and flees in the map.
+        :return: List of orders to execute, each order sends ship from a planet I own to other planet.
+        """
+        # self.__count_turn += 1
+        # Get and devide DF
+        allPlanetsDF = game.get_planets_data_frame()
+        allPlanetsDF = allPlanetsDF[allPlanetsDF['growth_rate'] > 0]
+        ourPlanetsDF = game.get_planets_by_owner(1)
+        # for p in ourPlanetsDF:
+        #     print(p.num_ships)
+
+        otherPlanetsDF = allPlanetsDF[allPlanetsDF['owner'] != 1]
+        if len(otherPlanetsDF) == 0:
+            return []
+        orders = []
+        # Todo: set rates to DF according to assafs algorithm
+        for planet in ourPlanetsDF:
+            df = otherPlanetsDF.copy()
+            currDF = StrongGrowthBot.set_rates(df, planet, game)
+            currDF.sort_values(by='rank', ascending=False, inplace=True)
+            currOrder = StrongGrowthBot.set_order_to_kill_only_first(currDF, planet)
+            # print(currDF)
+            if currOrder != None:
+                orders.append(currOrder)
+
+        # maybe later Todo: split our planets to different attacks
+        # listOfGroupPlanets = split_planets(ourPlanetsDF)
+        # maybe later Todo: attack enemy by groups of our planets
+
+        return orders
+
+class SmartSendBot(Player):
+
+    @staticmethod
+    def get_distance_by_DF(planet, planet_id, game):
+        return Planet.distance_between_planets(planet, game.get_planet_by_id(planet_id))
+
+    @staticmethod
+    def set_num_ships(planet):
+        if planet['owner'] == 2:
+            return planet['growth_rate'] * planet['dist'] + planet.num_ships
+        else:
+            return planet.num_ships
+
+    @staticmethod
+    def set_rates(otherPlanetsDF, planet, game):
+        growth_weight = 1
+        ships_weight = 1
+        dist_weight = 1000000
+
+        planetsDF = otherPlanetsDF.copy()
+        # print(planetsDF.apply(lambda x: FirstBot.get_distance_by_DF(planet, x['planet_id'], game), axis=1))
+        planetsDF['dist'] = planetsDF.apply(lambda x: SmartSendBot.get_distance_by_DF(planet, x['planet_id'], game), axis=1)
+        planetsDF['reqships'] = planetsDF.apply(lambda x: SmartSendBot.set_num_ships(x), axis=1)
+        # planetsDF = planetsDF[planetsDF['reqships'] < planet.num_ships]
+        planetsDF['rank'] = planetsDF['growth_rate'] * growth_weight - planetsDF['reqships'] * ships_weight - planetsDF[
+            'dist'] * dist_weight
+        return planetsDF
+
+    @staticmethod
+    def set_order_to_kill_only_first(df, source_planet, index, negShips):
+        if len(df) == 0 or source_planet.num_ships - negShips < df.iloc[index].reqships + 2:
+            return None
+        best_option = df.iloc[index]
+        return Order(
+            source_planet,
+            int(best_option['planet_id']),
+            best_option.num_ships + 1
+        )
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+        """
+        See player.play_turn documentation.
+        :param game: PlanetWars object representing the map - use it to fetch all the planets and flees in the map.
+        :return: List of orders to execute, each order sends ship from a planet I own to other planet.
+        """
+        # self.__count_turn += 1
+        # Get and devide DF
+
+        allPlanetsDF = game.get_planets_data_frame().copy()
+        allPlanetsDF = allPlanetsDF[allPlanetsDF['growth_rate'] > 0]
+        ourPlanetsDF = game.get_planets_by_owner(1)
+        # for p in ourPlanetsDF:
+        #     print(p.num_ships)
+        fleets = [fleet.destination_planet_id for fleet in game.get_fleets_by_owner(1)]
+        allPlanetsDF['fleets'] = allPlanetsDF.apply(lambda x: x.planet_id in fleets, axis=1)
+        otherPlanetsDF = allPlanetsDF[(allPlanetsDF['owner'] != 1) & (allPlanetsDF['fleets'] == False)]
+        if len(otherPlanetsDF) == 0:
+            return []
+        orders = []
+        # Todo: set rates to DF according to assafs algorithm
+
+        for planet in ourPlanetsDF:
+            negShips = 0
+            if planet.num_ships - negShips < 30:
+                continue
+            counter = 0
+            df = otherPlanetsDF.copy()
+            while counter < (len(df) // 2):
+                currDF = SmartSendBot.set_rates(df, planet, game)
+                currDF.sort_values(by='rank', ascending=False, inplace=True)
+                currOrder = SmartSendBot.set_order_to_kill_only_first(currDF, planet, counter, negShips)
+                counter += 1
+
+            # print(currDF)
+                if currOrder != None:
+                    orders.append(currOrder)
+                    negShips += currOrder.num_ships
+
+
+        # maybe later Todo: split our planets to different attacks
+        # listOfGroupPlanets = split_planets(ourPlanetsDF)
+        # maybe later Todo: attack enemy by groups of our planets
+
+        return orders
+
+class galfFinals(Player):
+
+    @staticmethod
+    def get_distance_by_DF(planet, planet_id, game):
+        return Planet.distance_between_planets(planet, game.get_planet_by_id(planet_id))
+
+    @staticmethod
+    def set_num_ships(planet):
+        if planet['owner'] == 2:
+            return planet['growth_rate'] * planet['dist'] + planet.num_ships
+        else:
+            return planet.num_ships
+
+    @staticmethod
+    def set_rates(otherPlanetsDF, planet, game):
+        growth_weight = 1
+        ships_weight = 1
+        dist_weight = 1000000
+
+        planetsDF = otherPlanetsDF.copy()
+        # print(planetsDF.apply(lambda x: FirstBot.get_distance_by_DF(planet, x['planet_id'], game), axis=1))
+        planetsDF['dist'] = planetsDF.apply(lambda x: galfFinals.get_distance_by_DF(planet, x['planet_id'], game), axis=1)
+        planetsDF['reqships'] = planetsDF.apply(lambda x: SmartSendBot.set_num_ships(x), axis=1)
+        # planetsDF = planetsDF[planetsDF['reqships'] < planet.num_ships]
+        planetsDF['rank'] = planetsDF['growth_rate'] * growth_weight - planetsDF['reqships'] * ships_weight - planetsDF[
+            'dist'] * dist_weight
+        return planetsDF
+
+    @staticmethod
+    def set_order_to_kill_only_first(df, source_planet, index, negShips):
+        if len(df) == 0 or source_planet.num_ships - negShips < df.iloc[index].reqships + 2:
+            return None
+        best_option = df.iloc[index]
+        return Order(
+            source_planet,
+            int(best_option['planet_id']),
+            best_option.num_ships + 1
+        )
+
+    def play_turn(self, game: PlanetWars) -> Iterable[Order]:
+        """
+        See player.play_turn documentation.
+        :param game: PlanetWars object representing the map - use it to fetch all the planets and flees in the map.
+        :return: List of orders to execute, each order sends ship from a planet I own to other planet.
+        """
+        # self.__count_turn += 1
+        # Get and devide DF
+
+        allPlanetsDF = game.get_planets_data_frame().copy()
+        allPlanetsDF = allPlanetsDF[allPlanetsDF['growth_rate'] > 0]
+        ourPlanetsDF = game.get_planets_by_owner(1)
+        # for p in ourPlanetsDF:
+        #     print(p.num_ships)
+        fleets = [fleet.destination_planet_id for fleet in game.get_fleets_by_owner(1)]
+        allPlanetsDF['fleets'] = allPlanetsDF.apply(lambda x: x.planet_id in fleets, axis=1)
+        otherPlanetsDF = allPlanetsDF[(allPlanetsDF['owner'] != 1) & (allPlanetsDF['fleets'] == False)]
+        if len(otherPlanetsDF) == 0:
+            return []
+        orders = []
+        # Todo: set rates to DF according to assafs algorithm
+
+        for planet in ourPlanetsDF:
+            negShips = 0
+            if planet.num_ships - negShips < 30:
+                continue
+            counter = 0
+            df = otherPlanetsDF.copy()
+            while counter < (len(df) // 2):
+                currDF = SmartSendBot.set_rates(df, planet, game)
+                currDF.sort_values(by='rank', ascending=False, inplace=True)
+                currOrder = SmartSendBot.set_order_to_kill_only_first(currDF, planet, counter, negShips)
+                counter += 1
+
+            # print(currDF)
+                if currOrder != None:
+                    orders.append(currOrder)
+                    negShips += currOrder.num_ships
+
+
+        # maybe later Todo: split our planets to different attacks
+        # listOfGroupPlanets = split_planets(ourPlanetsDF)
+        # maybe later Todo: attack enemy by groups of our planets
+
+        return orders
+
 class AttackWeakestPlanetFromStrongestBot(Player):
     """
     Example of very simple bot - it send flee from its strongest planet to the weakest enemy/neutral planet
@@ -104,7 +422,7 @@ def view_bots_battle():
     Requirements: Java should be installed on your device.
     """
     map_str = get_random_map()
-    run_and_view_battle(AttackWeakestPlanetFromStrongestBot(), AttackEnemyWeakestPlanetFromStrongestBot(), map_str)
+    # run_and_view_battle(PLAYER_BOTS[3], SmartSendBot(), map_str)
 
 
 def test_bot():
@@ -137,5 +455,5 @@ def test_bot():
 
 
 if __name__ == "__main__":
-    test_bot()
+    #test_bot()
     view_bots_battle()

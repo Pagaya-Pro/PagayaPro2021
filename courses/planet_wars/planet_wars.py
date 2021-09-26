@@ -93,6 +93,7 @@ class PlanetWars:
         """
         self.planets = planets
         self.fleets = fleets
+        self.turns = 0
 
     def get_planets_by_owner(self, owner):
         """
@@ -140,7 +141,7 @@ class PlanetWars:
         return list_to_data_frame(
             lst=self.fleets,
             columns=[
-                "owner", "num_ships", "source_planet", "destination_planet", "total_trip_length", "turns_remaining"
+                "owner", "num_ships", "source_planet_id", "destination_planet_id", "total_trip_length", "turns_remaining"
             ]
         )
 
@@ -250,6 +251,8 @@ class Order:
             return False
         if source_planet.num_ships < self.num_ships:
             return False
+        if self.num_ships <= 0:
+            return False
         return True
 
 
@@ -276,3 +279,12 @@ class Player:
         """
         raise NotImplemented("Here is where the fun happens - implement here your bot")
 
+    def new_game_has_started(self, game: PlanetWars):
+        """
+        This function will be called at the beginning of each game.
+        Here is the place to restart the game state.
+        for example if you count the number of ships you sent in fleets here is the place to set this counter back to 0
+        Note: Exception here will make you lose the game
+        :param game: PlanetWars object representing the map initial state
+        """
+        pass

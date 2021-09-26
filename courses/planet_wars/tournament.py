@@ -208,6 +208,7 @@ class Tournament:
         :param player2: Player 2 bot
         :return: The BattleResult
         """
+        print(f"run battle between {self._get_player_name(player1)} and {self._get_player_name(player2)}")
         game_manager = GameManager(map_str, player1, player2, self.raise_bot_exceptions)
         finish_state = game_manager.run_game()
 

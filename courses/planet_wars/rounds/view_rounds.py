@@ -35,7 +35,7 @@ def print_df(df: pd.DataFrame):
     """
     # for a nicer df printing
     pd.set_option('display.max_columns', 30)
-    pd.set_option('display.max_row', 30)
+    pd.set_option('display.max_row', None)
     pd.set_option('expand_frame_repr', False)
     print(df)
 
@@ -51,9 +51,9 @@ def view_battle(battle_results_df: pd.DataFrame, battle_id: int):
 
 
 if __name__ == '__main__':
-    print_df(get_battle_results_df(1))
+    print_df(get_battle_results_df(2))
     print("\n\n")
-    print_df(get_player_results_df(1))
+    print_df(get_player_results_df(2))
 
-    br = get_battle_results_df(1)
-    view_battle(br, 2)
+    br = get_battle_results_df(2)
+    view_battle(br, 44)  # 27 & 44
