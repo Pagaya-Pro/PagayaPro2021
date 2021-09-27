@@ -8,6 +8,7 @@ import random
 from typing import Union
 from typing import List
 
+import pandas as pd
 import pytest
 
 
@@ -73,6 +74,9 @@ def test_fibonacci_using_fixture(first_fibonacci_numbers):
 def please_test_me(string: str) -> str:
     return string + "!!!"
 
+def test_please_test_me():
+    assert please_test_me("testing is great") == "testing is great!!!"
+
 
 def times_7(number: Union[int, float]):
     return number * 7
@@ -85,6 +89,8 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
     assert times_7(0) == 0
     assert times_7(-1) == -7
     # TODO add one interesting case I didn't check
+    assert times_7(7) == 49
+
 
     random_generator = random.Random()
     for i in range(10):
@@ -93,17 +99,42 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
         # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
+        #beacuse rnd_int can be negative, if we multiply it by 7 it gets lower than the original number.
 
 
 # TODO Add a function and at least 3 tests
+def square(x):
+    return x**2
+
+def test_square():
+    assert square(3) == 9
+    assert square(-3) == 9
+    assert square(0) == 0
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
-# TODO test the function you wrote use assert_frame_equal and assert_series_equal
+@pytest.fixture()
+def data_frame_example():
+    data = dict(
+        letter = ['a', 'b', 'c', 'd'],
+        count = [1,2,3,4]
+    )
+    return pd.DataFrame(data)
 
+def change_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    # copy = df.copy()
+    df.loc[0, 'letter'] = 'e'
+    return df
+
+# TODO test the function you wrote use assert_frame_equal and assert_series_equal
+def test_change_dataframe(data_frame_example):
+    after_change = change_dataframe(data_frame_example)
+    pd.testing.assert_frame_equal(after_change, data_frame_example)
+    pd.testing.assert_series_equal(after_change.iloc[:, 0], data_frame_example.iloc[:, 0])
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
 
 def test_weighted_average_raise_zero_division_error():
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    with pytest.raises(ZeroDivisionError):
+        assert compute_weighted_average([32.0, 2.0], [-1.0, 1.0])
