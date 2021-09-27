@@ -94,7 +94,7 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
     assert times_7(0) == 0
     assert times_7(-1) == -7
     # TODO add one interesting case I didn't check
-    assert times_7(1) == 7
+    assert round(times_7(1.4), 2) == 9.8
 
     random_generator = random.Random()
     for i in range(10):
@@ -113,12 +113,12 @@ def test_times_7_parametrize(num, num_times_7):
 
 @pytest.fixture
 def random_number():
-    return random.Random().randint(-1000, 1000)
+    return [random.Random().randint(-1000, 1000) for i in range(10)]
 
 
 def test_times_7_fixture(random_number):
     for i in range(10):
-        assert times_7(random_number) == sum([random_number for i in range(7)])
+        assert times_7(random_number[i]) == sum([random_number[i] for j in range(7)])
 
 
 # TODO Add a function and at least 3 tests
@@ -165,15 +165,21 @@ def data_frame_example():
     return pd.DataFrame(data)
 
 
-def test_add_ones_column(data_frame_example):
-    tested_df = add_ones_column(data_frame_example)
+@pytest.fixture
+def expected_data_frame():
     expected_df = pd.DataFrame(dict(
         person_name=["Ron", "Roy", "Shai", "Yuval"],
         values=[1, 4, 3, 2],
         ones=[1., 1., 1., 1.])
     )
-    pd.testing.assert_frame_equal(tested_df, expected_df)
-    pd.testing.assert_series_equal(tested_df.ones, expected_df.ones)
+    return expected_df
+
+
+def test_add_ones_column(data_frame_example, expected_data_frame):
+    tested_df = add_ones_column(data_frame_example)
+    # expected_df = expected_data_frame
+    pd.testing.assert_frame_equal(tested_df, expected_data_frame)
+    pd.testing.assert_series_equal(tested_df.ones, expected_data_frame.ones)
 
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
@@ -181,6 +187,9 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
 
 
 def test_weighted_average_raise_zero_division_error():
+    """
+    check that weighted_average raise zero division error when the sum of the weights is 0
+    """
     # TODO check that weighted_average raise zero division error when the sum of the weights is 0
     with pytest.raises(ZeroDivisionError):
         assert compute_weighted_average([1, 2, 3], [-1, 0, 1])
