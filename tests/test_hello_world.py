@@ -169,10 +169,13 @@ def test_df_to_lowercase_assert_series_equal(df_to_lowercase_dfs):
 
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
+    """
+        check that weighted_average raise zero division error when the sum of the weights is 0
+    """
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
 
-# check that weighted_average raise zero division error when the sum of the weights is 0
+
 def test_weighted_average_raise_zero_division_error():
     weighted_to_zero_sum = [-4, -3, -2, -1, 0, 1, 2, 3, 4]
     x_values = [1, 2, 3, 4, 5, 6, 7, 8, 9]
