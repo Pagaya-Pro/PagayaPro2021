@@ -1,6 +1,6 @@
 import os
 
-DATA_FILES_PATH = "s3://pagaya-pro-source/data"
+DATA_FILES_PATH = "s3://pagaya-pro-bucket/data"
 
 ASSIGNMENT1_DATA = os.path.join(DATA_FILES_PATH, "assignment1")
 ASSIGNMENT2_DATA = os.path.join(DATA_FILES_PATH, "assignment2")
