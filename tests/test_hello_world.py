@@ -85,19 +85,23 @@ def times_7(number: Union[int, float]):
 
 # TODO make_me_2_functions_one_use_fixture_and_one_use_parametrize
 
-@pytest.mark.parametrize("num", [2,100,-1,-3,0, -5])
+@pytest.mark.parametrize("num", [2,100,-1,-3,0, 5.3, 0.00000000001, -3.8])
 def test_times_7_parametrize(num):
     assert times_7(num) == 7*num
     assert times_7(num) / 7 == num
 
 @pytest.fixture
-def rnd_num():
+def random_arr(request):
     random_generator = random.Random()
-    return random_generator.randint(-1000, 1000)
+    ret_arr = []
 
-def test_times_7_fixture(rnd_num):
+    for i in range(int(request.param)):
+        ret_arr.append(random_generator.randint(-1000, 1000))
+    return ret_arr
 
-    for i in range(10):
+@pytest.mark.parametrize("random_arr", [10], indirect=True)
+def test_times_7_fixture(random_arr):
+    for rnd_num in random_arr:
         # time_7(rnd_int) is like summing 7 items of rnd_int
         assert times_7(rnd_num) == sum([rnd_num for i in range(7)])
 
@@ -120,38 +124,25 @@ def change_df(df: pd.DataFrame) -> pd.DataFrame:
     df_copy.iloc[:,2] = 5
     return df_copy
 
-@pytest.fixture
-def rnd_data_frame(scope="module"):
-    random_generator = random.Random()
-    series_arr = []
-    for i in range(100):
-        series_arr.append(random_generator.randint(-1000, 1000))
-    data= np.array(series_arr).reshape((25,4))
-    return pd.DataFrame(data=data, columns=['col_1', 'col_2', 'col_3', 'col_4'])
-
 # TODO test the function you wrote use assert_frame_equal and assert_series_equal
-@pytest.mark.parametrize("col_num", ['col_1','col_2','col_4'])
-def test_change_df(rnd_data_frame, col_num):
-    ret = rnd_data_frame
-    print(change_df(ret))
-    print(ret)
-    pd.testing.assert_series_equal(change_df(ret)[col_num], ret[col_num])
+@pytest.mark.parametrize("random_arr", [100], indirect=True)
+def test_change_df(random_arr):
+    data = np.array(random_arr).reshape((25, 4))
+    rnd_data_frame = pd.DataFrame(data=data, columns=['col_1', 'col_2', 'col_3', 'col_4'])
+
+    pd.testing.assert_frame_equal(change_df(rnd_data_frame)[['col_1','col_2']],
+                                            rnd_data_frame[['col_1','col_2']])
+    pd.testing.assert_series_equal(change_df(rnd_data_frame)['col_4'],
+                                             rnd_data_frame['col_4'])
 
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
-@pytest.fixture
-def get_random_arr():
-    random_generator = random.Random()
-    ret_arr = []
-    for i in range(10):
-        ret_arr.append(random_generator.randint(-1000, 1000))
-    return ret_arr
-
-def test_weighted_average_raise_zero_division_error(get_random_arr):
+@pytest.mark.parametrize("random_arr", [50, 100], indirect=True)
+def test_weighted_average_raise_zero_division_error(random_arr):
     # TODO check that weighted_average raise zero division error when the sum of the weights is 0
     with pytest.raises(ZeroDivisionError):
-        ret = get_random_arr
+        ret = random_arr
         ret.append(-sum(ret))
-        assert compute_weighted_average(get_random_arr, ret)
+        assert compute_weighted_average(random_arr, ret)
