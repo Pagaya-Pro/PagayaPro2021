@@ -131,16 +131,36 @@ def test_module_2():
     assert module_2(0) == 0
 
 
+@pytest.fixture
+def numbers():
+    return [2, 1, 0]
+
+
+@pytest.fixture
+def numbers_module_2():
+    return [0, 1, 0]
+
+
+def test_module_2_fixture(numbers, numbers_module_2):
+    for index, number in enumerate(numbers):
+        assert module_2(number) == numbers_module_2[index]
+
+
+@pytest.mark.parametrize("numbers, numbers_module_2", [(2, 0), (1, 1), (0, 0)])
+def test_module_2_parametrize(numbers, numbers_module_2):
+    assert module_2(numbers) == numbers_module_2
+
+
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
-def function(df):
-    return df.dropna().reset_index(drop=True)
+def df_drop_na(df):
+    return df.copy().dropna().reset_index(drop=True)
 
 
 # TODO test the function you wrote use assert_frame_equal and assert_series_equal
-def test_function():
-    pd.testing.assert_frame_equal(function(pd.DataFrame(data=[1, 2, 3, 4, 5, float('nan'), 7.5])),
+def test_df_drop_na():
+    pd.testing.assert_frame_equal(df_drop_na(pd.DataFrame(data=[1, 2, 3, 4, 5, float('nan'), 7.5])),
                                   pd.DataFrame(data=[1, 2, 3, 4, 5, 7.5]))
-    pd.testing.assert_series_equal(function(pd.Series(data=[1, 2, 3, 4, 5, float('nan'), 7.5])),
+    pd.testing.assert_series_equal(df_drop_na(pd.Series(data=[1, 2, 3, 4, 5, float('nan'), 7.5])),
                                    pd.Series(data=[1, 2, 3, 4, 5, 7.5]))
 
 
@@ -149,6 +169,8 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
 
 
 def test_weighted_average_raise_zero_division_error():
+    """
+    Test the compute_weighted_average function
+    """
     with pytest.raises(ZeroDivisionError):
         assert compute_weighted_average([1, 2, 3], [0, 1, -1])
-    # TODO check that weighted_average raise zero division error when the sum of the weights is 0
