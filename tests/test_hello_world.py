@@ -85,26 +85,26 @@ def times_7(number: Union[int, float]):
     return number * 7
 
 
-# TODO make_me_2_functions_one_use_fixture_and_one_use_parametrize - done
-def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
-    assert times_7(2) == 14
-    assert times_7(4) == 28
-    assert times_7(0) == 0
-    assert times_7(-1) == -7
-    assert times_7(0.1) == 0.7
-    # TODO add one interesting case I didn't check - done
+# # TODO make_me_2_functions_one_use_fixture_and_one_use_parametrize - done
+# def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
+#     assert times_7(2) == 14
+#     assert times_7(4) == 28
+#     assert times_7(0) == 0
+#     assert times_7(-1) == -7
+#     assert times_7(0.1) == 0.7
+#     # TODO add one interesting case I didn't check - done
+#
+#     random_generator = random.Random()
+#     for i in range(10):
+#         rnd_int = random_generator.randint(-1000, 1000)
+#         # time_7(rnd_int) is like summing 7 items of rnd_int
+#         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
+#
+#         # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work - done
+#         # the assert above doesn't always work due to numbers that are strictly smaller than 1.
 
-    random_generator = random.Random()
-    for i in range(10):
-        rnd_int = random_generator.randint(-1000, 1000)
-        # time_7(rnd_int) is like summing 7 items of rnd_int
-        assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
-        # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work - done
-        # the assert above doesn't always work due to numbers that are strictly smaller than 1.
-
-
-@pytest.mark.parametrize("num, num_times_7", [(2, 14),(4, 28),(0, 0),(-1, -7),(0.1, 0.7)])
+@pytest.mark.parametrize("num, num_times_7", [(2, 14),(4, 28),(0, 0),(-1, -7),(0.5, 3.5)])
 def test_times_7_use_parametrize(num, num_times_7):
     assert times_7(num) == num_times_7
 
@@ -120,8 +120,7 @@ def generate_random_nums():
 
 
 def test_times_7_use_fixture(generate_random_nums):
-    arr = generate_random_nums()
-    for rnd_int in arr:
+    for idx, rnd_int in enumerate(generate_random_nums):
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
 
@@ -173,3 +172,4 @@ def test_weighted_average_raise_zero_division_error():
     with pytest.raises(ZeroDivisionError):
         assert compute_weighted_average([1,2,3,4], [1,1,-1,-1])
     # TODO check that weighted_average raise zero division error when the sum of the weights is 0 - done
+
