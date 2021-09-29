@@ -85,7 +85,7 @@ def times_7(number: Union[int, float]):
     return number * 7
 
 
-@pytest.mark.parametrize("num, num_times_7", [(2, 14),(4, 28),(0, 0),(-1, -7),(0.1, 0.7)])
+@pytest.mark.parametrize("num, num_times_7", [(2, 14),(4, 28),(0, 0),(-1, -7),(0.5, 3.5)])
 def test_times_7_use_parametrize(num, num_times_7):
     assert times_7(num) == num_times_7
 
@@ -98,8 +98,7 @@ def generate_random_nums():
 
 
 def test_times_7_use_fixture(generate_random_nums):
-    arr = generate_random_nums()
-    for rnd_int in arr:
+    for idx, rnd_int in enumerate(generate_random_nums):
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
 # TODO Add a function and at least 3 tests - done
