@@ -8,6 +8,8 @@ import random
 from typing import Union
 from typing import List
 
+import numpy as np
+import pandas as pd
 import pytest
 
 
@@ -74,36 +76,58 @@ def please_test_me(string: str) -> str:
     return string + "!!!"
 
 
+def test_please_test_me():
+    assert please_test_me("testing is great") == "testing is great!!!"
+
+
 def times_7(number: Union[int, float]):
     return number * 7
 
+@pytest.fixture()
+def rand_fixture():
+    return [random.Random().randint(-1000, 1000) for i in range(100)]
 
-# TODO make_me_2_functions_one_use_fixture_and_one_use_parametrize
-def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
-    assert times_7(2) == 14
-    assert times_7(4) == 28
-    assert times_7(0) == 0
-    assert times_7(-1) == -7
-    # TODO add one interesting case I didn't check
+def test_times_7_fixture(rand_fixture):
+    for i in rand_fixture:
+        assert times_7(i) == sum([i for j in range(7)])
 
-    random_generator = random.Random()
-    for i in range(10):
-        rnd_int = random_generator.randint(-1000, 1000)
-        # time_7(rnd_int) is like summing 7 items of rnd_int
-        assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
+@pytest.mark.parametrize("num, res", [(2, 14), (4, 28), (0, 0), (-1, -7), (10, 70)])
+def test_times_7_parametrize(num, res):
+    assert times_7(num) == res
 
-        # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
-
+# assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work -
+# because rnd_int might be negative so rnd_int > 7*rnd_int
 
 # TODO Add a function and at least 3 tests
+def square(num):
+    return num**2
+
+def test_square1():
+    assert square(1) == 1
+
+def test_square2():
+    assert square(-1) == 1
+
+def test_square3():
+    assert np.square(2) == square(2)
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
-# TODO test the function you wrote use assert_frame_equal and assert_series_equal
+def change_df(df):
+    df['a'] = 5
+    return df
 
+# TODO test the function you wrote use assert_frame_equal and assert_series_equal
+def test_change_df():
+    df = pd.DataFrame({'a':[1,2,3], 'b': [1,2,3]})
+    expected = pd.DataFrame({'a':[5,5,5], 'b': [1,2,3]})
+    ret = change_df(df)
+    pd.testing.assert_frame_equal(ret, expected)
+    pd.testing.assert_series_equal(ret['a'], expected['a'])
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
-
 def test_weighted_average_raise_zero_division_error():
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    with pytest.raises(ZeroDivisionError):
+        assert compute_weighted_average([1,2,3,4], [1,-1,0,0])
+    # TODO check that weighted_average raise zero division error when the sum of the weights is 0
