@@ -6,7 +6,8 @@ https://www.guru99.com/pytest-tutorial.html
 """
 
 import random
-from typing import Union, List
+from typing import Union
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -75,8 +76,9 @@ def test_fibonacci_using_fixture(first_fibonacci_numbers):
 def please_test_me(string: str) -> str:
     return string + "!!!"
 
-@pytest.mark.parametrize("test_string", ["testing is great"])
-def test_please_test_me(test_string):
+
+def test_please_test_me():
+    test_string = "testing is great"
     assert please_test_me(test_string) == "testing is great!!!"
 
 
@@ -94,10 +96,9 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
     assert times_7(float('inf')) == float('inf')
     assert times_7('h') == 'hhhhhhh'  # The function multiplies strings and not just numbers :(
 
-@pytest.mark.parametrize('idx, num', [(0, 2), (1, 0), (2, -7), (3, 'h')])
-def test_parametrize_times_7(idx, num):
-    test_vals = [14, 0, -49, 'hhhhhhh']
-    assert times_7(num) == test_vals[idx]
+@pytest.mark.parametrize('num, val', [(2,14), (0, 0), (-7, -49), ('h', 'hhhhhhh')])
+def test_parametrize_times_7(num, val):
+    assert times_7(num) == val
 
 @pytest.fixture()
 def numbers_times_7():
@@ -116,6 +117,26 @@ def noam_king(text):
 @pytest.mark.parametrize('txt', ['hi', 'idiot', 'liar'])
 def test_noam_king(txt):
     assert noam_king(txt) == "{0} noam is king".format(txt)
+
+# I will create another function and add two tests to it
+
+def am_i_wrong(val):
+    if val:
+        return "Y"
+    return "N"
+
+def test_number_in_function():
+    random.seed(123)
+    num = random.randint(1, 10000)
+    assert am_i_wrong(num) == 'Y'
+    assert am_i_wrong(0) == 'N'
+
+@pytest.mark.parametrize('val', [True, False])
+def test_boolean_am_i_wrong(val):
+    if val:
+        assert am_i_wrong(val) == 'Y'
+    else:
+        assert am_i_wrong(val) == 'N'
 
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
@@ -139,7 +160,7 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
 
-@pytest.mark.parametrize('x, w', [([1, 9, 8, 101], [-1, 0, 1])])
+@pytest.mark.parametrize('x, w', [([1, 9, 8, 101], [-1, 0, 1]), ([99, 102, -3], [0])])
 def test_weighted_average_raise_zero_division_error(x, w):
     # TODO check that weighted_average raise zero division error when the sum of the weights is 0
     with pytest.raises(ZeroDivisionError):
