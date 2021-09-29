@@ -138,22 +138,11 @@ def mix_matrices():
     return [np.random.randn(3, 3) for _ in range(5)]
 
 
-def test_make_pos_with_neg(neg_matrices):
-    for mat in neg_matrices:
-        assert np.all(make_pos(mat) > mat)
-        assert np.sum(make_pos(mat)) > np.sum(mat)
-
-
-def test_make_pos_with_pos(pos_matrices):
-    for mat in pos_matrices:
-        assert np.all(make_pos(mat) == mat)
-        assert np.sum(make_pos(mat)) == np.sum(mat)
-
-
-def test_make_pos_with_mix(mix_matrices):
-    for mat in mix_matrices:
-        assert np.all(make_pos(mat) >= mat)
-        assert np.sum(make_pos(mat)) >= np.sum(mat)
+def test_make_pos(neg_matrices, pos_matrices, mix_matrices):
+    for matrices in (neg_matrices, pos_matrices, mix_matrices):
+        for mat in matrices:
+            assert np.all(make_pos(mat) >= mat)
+            assert np.sum(make_pos(mat)) >= np.sum(mat)
 
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
@@ -182,7 +171,9 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
 
+"""
+check that weighted_average raise zero division error when the sum of the weights is 0
+"""
 def test_weighted_average_raise_zero_division_error():
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
     with pytest.raises(ZeroDivisionError):
         assert compute_weighted_average([1, 2], [-1, 1])
