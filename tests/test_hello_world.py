@@ -139,7 +139,7 @@ def increase_age(data):
     data_2['Age'] += 1
     return data_2
 
-def test_multiply_values_by_2():
+def test_increase_age():
     dictionary = dict(Make = ["Toyota", "Subaru", "Mercedes", "BMW", "Fiat"], Age = [10, 12, 27, 3, 1])
     data = pd.DataFrame(dictionary)
     data_2 = increase_age(data)
