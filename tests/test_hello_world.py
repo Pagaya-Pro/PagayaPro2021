@@ -6,6 +6,10 @@ https://www.guru99.com/pytest-tutorial.html
 """
 import random
 from typing import Union
+from typing import List
+import numpy as np
+import pandas as pd
+import string
 
 import pytest
 
@@ -72,17 +76,35 @@ def test_fibonacci_using_fixture(first_fibonacci_numbers):
 def please_test_me(string: str) -> str:
     return string + "!!!"
 
+def test_please_test_me():
+    assert please_test_me("testing is great") == "testing is great!!!", "error"
+
 
 def times_7(number: Union[int, float]):
     return number * 7
 
 
 # TODO make_me_2_functions_one_use_fixture_and_one_use_parametrize
+@pytest.mark.parametrize("num, res", [(0, 0), (2, 14), (4, 28), (-1, -7), (0.5, 3.5)])
+def test_times_7_using_parametrize(num, res):
+    assert times_7(num) == res
+
+
+@pytest.fixture
+def times_7_rnd_int():
+    return random.Random().randint(-1000, 1000)
+
+
+def test_times_7_using_fixture(times_7_rnd_int):
+    assert times_7(times_7_rnd_int) == sum([times_7_rnd_int for i in range(7)])
+
+
 def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
     assert times_7(2) == 14
     assert times_7(4) == 28
     assert times_7(0) == 0
     assert times_7(-1) == -7
+    assert times_7(0.5) == 3.5
     # TODO add one interesting case I didn't check
 
     random_generator = random.Random()
@@ -91,13 +113,48 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
         # time_7(rnd_int) is like summing 7 items of rnd_int
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
-        # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
+        # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work -
+        #  because rnd_int can be negative number therefore it is not true.
 
 
 # TODO Add a function and at least 3 tests
+def add_10(number: Union[int, float]):
+    return number+10
+
+
+@pytest.mark.parametrize("num, res", [(0, 10), (2, 12), (-10, 0), (-1, 9), (0.5, 10.5)])
+def test_add_10_using_parametrize(num, res):
+    assert add_10(num) == res
+
+
+@pytest.fixture
+def add_10_rnd_int():
+    return [10,11,12,13]
+
+
+def test_add_10_using_fixture(add_10_rnd_int):
+    for item_index, value in enumerate(add_10_rnd_int):
+        assert add_10(item_index) == value
+
+
+def test_add_10():
+    assert add_10(-50) == -40
+
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
+def add_prefix(df):
+    df = df.add_prefix('col_')
+    return df
+
+
 # TODO test the function you wrote use assert_frame_equal and assert_series_equal
+def test_add_prefix():
+    df = pd.DataFrame({'a':[1,2,3],'b':[2,3,4]})
+    output = pd.DataFrame({'col_a':[1,2,3],'col_b':[2,3,4]})
+    res = add_prefix(df)
+    pd.testing.assert_frame_equal(res,output)
+    pd.testing.assert_series_equal(res['col_a'], output['col_a'])
+
 
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
@@ -105,4 +162,5 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
 
 
 def test_weighted_average_raise_zero_division_error():
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    with pytest.raises(ZeroDivisionError):
+        assert compute_weighted_average([1, 0 ,1], [1, -1, 0])
