@@ -101,6 +101,7 @@ def test_times_7_use_fixture(generate_random_nums):
     for idx, rnd_int in enumerate(generate_random_nums):
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
+
 # TODO Add a function and at least 3 tests - done
 def factorial(a):
     """calculates factorial of an integer"""
