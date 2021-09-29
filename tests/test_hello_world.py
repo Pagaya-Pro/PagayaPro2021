@@ -85,25 +85,6 @@ def times_7(number: Union[int, float]):
     return number * 7
 
 
-# TODO make_me_2_functions_one_use_fixture_and_one_use_parametrize - done
-def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
-    assert times_7(2) == 14
-    assert times_7(4) == 28
-    assert times_7(0) == 0
-    assert times_7(-1) == -7
-    assert times_7(0.1) == 0.7
-    # TODO add one interesting case I didn't check - done
-
-    random_generator = random.Random()
-    for i in range(10):
-        rnd_int = random_generator.randint(-1000, 1000)
-        # time_7(rnd_int) is like summing 7 items of rnd_int
-        assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
-
-        # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work - done
-        # the assert above doesn't always work due to numbers that are strictly smaller than 1.
-
-
 @pytest.mark.parametrize("num, num_times_7", [(2, 14),(4, 28),(0, 0),(-1, -7),(0.1, 0.7)])
 def test_times_7_use_parametrize(num, num_times_7):
     assert times_7(num) == num_times_7
@@ -111,12 +92,9 @@ def test_times_7_use_parametrize(num, num_times_7):
 
 @pytest.fixture
 def generate_random_nums():
+    """generate 10 random integers"""
     random_generator = random.Random()
-    arr = []
-    for i in range(10):
-        rnd_int = random_generator.randint(-1000, 1000)
-        arr.append(rnd_int)
-    return arr
+    return [random_generator.randint(-1000, 1000) for i in range(10)]
 
 
 def test_times_7_use_fixture(generate_random_nums):
@@ -126,6 +104,7 @@ def test_times_7_use_fixture(generate_random_nums):
 
 # TODO Add a function and at least 3 tests - done
 def factorial(a):
+    """calculates factorial of an integer"""
     if a < 1 or a != int(a):
         return -1
     if a == 1:
@@ -150,6 +129,7 @@ def test_factorial_not_an_integer(num):
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change - done
 def keep_even_rows(df: pd.DataFrame):
+    """keeps only even rows of DF"""
     return df.iloc[::2].reset_index(drop=True)
 
 
@@ -169,6 +149,7 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
 
 
 def test_weighted_average_raise_zero_division_error():
+    """check that exception is raised when w sums to 0"""
     with pytest.raises(ZeroDivisionError):
         assert compute_weighted_average([1,2,3,4], [1,1,-1,-1])
     # TODO check that weighted_average raise zero division error when the sum of the weights is 0 - done
