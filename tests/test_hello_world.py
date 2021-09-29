@@ -125,9 +125,15 @@ def find_reciprocal(x: Union[int, float]):
     return 1/x
 
 
-def test_find_reciprocal():
+def test_find_reciprocal_1():
     assert find_reciprocal(1) == 1
+
+
+def test_find_reciprocal_int():
     assert find_reciprocal(8) == 0.125
+
+
+def test_find_reciprocal_float():
     assert find_reciprocal(0.2) == 5
 
 
