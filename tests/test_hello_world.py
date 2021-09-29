@@ -99,7 +99,7 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
         # time_7(rnd_int) is like summing 7 items of rnd_int
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
-        assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
+        # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
                                            # This assert doesn't work because the random number is negative, and
                                            # multiplication with positive number makes it smaller
 
