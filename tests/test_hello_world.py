@@ -7,7 +7,8 @@ https://www.guru99.com/pytest-tutorial.html
 import random
 from typing import Union
 from typing import List
-
+import pandas as pd
+import numpy as np
 import pytest
 
 
@@ -74,6 +75,10 @@ def please_test_me(string: str) -> str:
     return string + "!!!"
 
 
+def test_please_test_me():
+    assert please_test_me('check') == 'check!!!'
+
+
 def times_7(number: Union[int, float]):
     return number * 7
 
@@ -84,6 +89,7 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
     assert times_7(4) == 28
     assert times_7(0) == 0
     assert times_7(-1) == -7
+    assert round(times_7(1.5),2) == 10.5
     # TODO add one interesting case I didn't check
 
     random_generator = random.Random()
@@ -93,6 +99,41 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
         # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
+        # It doesn't work because if rnd_int is a negative number times_7(rnd_int) will be smaller then rnd_int
+
+
+@pytest.fixture()
+def random_numbers():
+    return [random.Random().randint(-1000, 1000) for i in range(10)]
+
+
+def test_7_times_using_fixture(random_numbers):
+    for i in range(10):
+        assert round(times_7(random_numbers[i]),2) == sum([random_numbers[i] for j in range(7)])
+
+
+@pytest.mark.parametrize('number, expected_result', [(2, 14), (4, 28), (0, 0), (-1, -7), (1.5, 10.5)])
+def test_7_times_using_parametrize(number, expected_result):
+    assert times_7(number) == expected_result
+
+
+def calculate_sqrt(number: Union[int, float]):
+    if number < 0:
+        raise Exception("Can't do sqrt on negative number")
+    return number ** 0.5
+
+
+def test_calculate_sqrt_negative():
+    with pytest.raises(Exception):
+        assert calculate_sqrt(-2)
+
+
+def test_calculate_sqrt():
+    assert calculate_sqrt(4) == 2
+
+
+def test_calculate_sqrt_float():
+    assert round(calculate_sqrt(10.5), 2) == 3.24
 
 
 # TODO Add a function and at least 3 tests
@@ -100,10 +141,55 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
 # TODO test the function you wrote use assert_frame_equal and assert_series_equal
 
+def change_df(df: pd.DataFrame):
+    df['value'] = 5.0
+    return df
+
+
+def change_series(ser: pd.Series):
+    return ser.head(1)
+
+
+@pytest.fixture
+def data_frame_example():
+    data = dict(
+        name=['Tal', 'Ron', 'Amit'],
+        value=[1, 5, np.nan]
+    )
+    return pd.DataFrame(data)
+
+
+@pytest.fixture
+def data_frame_expected():
+    return pd.DataFrame(dict(
+        name=['Tal', 'Ron', 'Amit'],
+        value=[5.0, 5.0, 5.0]))
+
+
+@pytest.fixture
+def series_example():
+    data = [1, 5, 3]
+    return pd.Series(data)
+
+
+@pytest.fixture
+def series_expected():
+    data = [1]
+    return pd.Series(data)
+
+
+def test_change_series(series_example, series_expected):
+    pd.testing.assert_series_equal(change_series(series_example), series_expected)
+
+
+def test_change_df(data_frame_example, data_frame_expected):
+    pd.testing.assert_frame_equal(change_df(data_frame_example), data_frame_expected)
+
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
 
 def test_weighted_average_raise_zero_division_error():
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    with pytest.raises(ZeroDivisionError):
+        compute_weighted_average([1], [0])
