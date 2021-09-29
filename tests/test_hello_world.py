@@ -104,11 +104,11 @@ def test_times_7_parametrize(multiplier, result):
 @pytest.fixture
 def rand_num():
     random_generator = random.Random()
-    return random_generator.randint(-1000, 1000)
+    return random_generator
 
 def test_times_7_fixture(rand_num):
     for i in range(10):
-        rand = rand_num
+        rand = rand_num.randint(-1000, 1000)
         assert times_7(rand) == sum([rand for i in range(7)])
 
 
@@ -145,7 +145,7 @@ def test_increase_age():
     data_2 = increase_age(data)
     data["Age"] = data["Age"].apply(man_increase_age)
     print(data)
-    pd.testing.assert_frame_equal(data, data_2)
+    pd.testing.assert_series_equal(data["Age"], data_2["Age"])
 
 def man_increase_age(a):
     return a + 1
@@ -154,6 +154,9 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
 
 
 def test_weighted_average_raise_zero_division_error():
+    """
+    Test the compute_weighted_average function. Tests that dividing by zero raises ZeroDivisionError.
+    """
     with pytest.raises(ZeroDivisionError):
         assert compute_weighted_average([1, 0 ,1], [1, -1, 0])
       # TODO check that weighted_average raise zero division error when the sum of the weights is 0
