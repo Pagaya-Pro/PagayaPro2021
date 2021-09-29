@@ -102,9 +102,13 @@ def test_times_7_parametrize(num, res):
 def square(num):
     return num**2
 
-def test_square():
+def test_square1():
     assert square(1) == 1
+
+def test_square2():
     assert square(-1) == 1
+
+def test_square3():
     assert np.square(2) == square(2)
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
