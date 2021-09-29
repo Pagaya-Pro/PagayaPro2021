@@ -124,7 +124,6 @@ def test_times_7_use_fixture(generate_random_nums):
     for rnd_int in arr:
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
-
 # TODO Add a function and at least 3 tests - done
 def factorial(a):
     if a < 1 or a != int(a):
