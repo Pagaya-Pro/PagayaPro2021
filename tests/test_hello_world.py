@@ -76,7 +76,7 @@ def please_test_me(string: str) -> str:
     return string + "!!!"
 
 
-@pytest.mark.parametrize("input, output", [("testing is great", "testing is great!!!")])
+@pytest.mark.parametrize("input, output", [("testing is great", "testing is great!!!"), ("", "!!!")])
 def test_please_test_me_using_parametrize(input, output):
     assert please_test_me(input) == output
 
@@ -91,11 +91,7 @@ def test_times_7_using_parametrize(input, output):
 
 
 @pytest.fixture
-def first_times_7():
-    """
-    This fixture is the first elements of the fibonacci series.
-    (In real life this better be a constant, we use fixture for generating objects we need for testing)
-    """
+def products_of_7():
     products = []
     random_generator = random.Random()
     for i in range(10):
@@ -104,27 +100,11 @@ def first_times_7():
     return products
 
 
-def test_times_7_with_fixture(first_times_7):
-    for productValue in first_times_7:
+def test_products_of_7_with_fixture(products_of_7):
+    for productValue in products_of_7:
         assert times_7(productValue[0]) == productValue[1]
 
 
-# def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
-#     assert times_7(2) == 14
-#     assert times_7(4) == 28
-#     assert times_7(0) == 0
-#     assert times_7(-1) == -7
-#     #  add one interesting case I didn't check
-#
-#     random_generator = random.Random()
-#     for i in range(10):
-#         rnd_int = random_generator.randint(-1000, 1000)
-#         # time_7(rnd_int) is like summing 7 items of rnd_int
-#         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
-
-# assert times_7(rnd_int) > rnd_int  #Won't work for non-positive values. "-7<-1"
-
-# Add a function and at least 3 tests
 def factorial_of_none_negative(num):
     if (int(num) != num) or (num < 0):
         raise ArithmeticError("Not a non-negative integer")
@@ -161,41 +141,40 @@ def df_to_lowercase(df):
     Returns a copy of the dataframe where all of its string columns are in lowercase
     """
     data_lower_case = df.copy()
+
     for col in data_lower_case.columns:
-        try:
+        if data_lower_case[col].apply(type).eq(str).any():
             data_lower_case[col] = data_lower_case[col].str.lower()
-        except:
-            continue
     return data_lower_case
 
 
 # test the function you wrote use assert_frame_equal and assert_series_equal
-def test_df_to_lowercase_assert_frame_equal():
+@pytest.fixture
+def df_to_lowercase_dfs():
     df = pd.DataFrame({'name': ['Guy', 'nOa', 'daN', 'KOBI', 'IRis', 'lIoRa'], 'age': [28, 33, 24, 60, 60, 84],
                        'gender': ['MALE', 'FEMALE', 'MALE', 'MALE', 'femALE', 'fEMALe']})
     df_expected = pd.DataFrame({'name': ['guy', 'noa', 'dan', 'kobi', 'iris', 'liora'], 'age': [28, 33, 24, 60, 60, 84],
                                 'gender': ['male', 'female', 'male', 'male', 'female', 'female']})
-    pd.testing.assert_frame_equal(df_to_lowercase(df),df_expected)
+    return [df, df_expected]
 
 
-def test_df_to_lowercase_assert_series_equal():
-    df = pd.DataFrame({'name': ['Guy', 'nOa', 'daN', 'KOBI', 'IRis', 'lIoRa'], 'age': [28, 33, 24, 60, 60, 84],
-                       'gender': ['MALE', 'FEMALE', 'MALE', 'MALE', 'femALE', 'fEMALe']})
-    df_expected = pd.DataFrame({'name': ['guy', 'noa', 'dan', 'kobi', 'iris', 'liora'], 'age': [28, 33, 24, 60, 60, 84],
-                                'gender': ['male', 'female', 'male', 'male', 'female', 'female']})
-    data_lowered_case = df_to_lowercase(df)
+def test_df_to_lowercase_assert_frame_equal(df_to_lowercase_dfs):
+    pd.testing.assert_frame_equal(df_to_lowercase(df_to_lowercase_dfs[0]), df_to_lowercase_dfs[1])
+
+
+def test_df_to_lowercase_assert_series_equal(df_to_lowercase_dfs):
+    data_lowered_case = df_to_lowercase(df_to_lowercase_dfs[0])
     for col in data_lowered_case.columns:
-        pd.testing.assert_series_equal(data_lowered_case[col],df_expected[col])
+        pd.testing.assert_series_equal(data_lowered_case[col], df_to_lowercase_dfs[1][col])
 
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
+
 # check that weighted_average raise zero division error when the sum of the weights is 0
 def test_weighted_average_raise_zero_division_error():
-    weighted_to_zero_sum = [-4,-3,-2,-1,0,1,2,3,4]
-    x_values = [1,2,3,4,5,6,7,8,9]
+    weighted_to_zero_sum = [-4, -3, -2, -1, 0, 1, 2, 3, 4]
+    x_values = [1, 2, 3, 4, 5, 6, 7, 8, 9]
     with pytest.raises(ZeroDivisionError):
-        assert compute_weighted_average(x_values,weighted_to_zero_sum)
-
-
+        assert compute_weighted_average(x_values, weighted_to_zero_sum)
