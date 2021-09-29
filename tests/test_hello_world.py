@@ -8,6 +8,7 @@ import random
 from typing import Union
 from typing import List
 
+import pandas as pd
 import pytest
 
 
@@ -69,41 +70,59 @@ def test_fibonacci_using_fixture(first_fibonacci_numbers):
         assert fibonacci(item_index) == fibonacci_value
 
 
-# TODO test this function, make sure for example please_test_me("testing is great") = "testing is great!!!"
 def please_test_me(string: str) -> str:
     return string + "!!!"
+
+@pytest.mark.parametrize("string", ["testing is great"])
+def test_please_test_me(string):
+    assert please_test_me(string) == "testing is great!!!"
 
 
 def times_7(number: Union[int, float]):
     return number * 7
 
 
-# TODO make_me_2_functions_one_use_fixture_and_one_use_parametrize
-def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
-    assert times_7(2) == 14
-    assert times_7(4) == 28
-    assert times_7(0) == 0
-    assert times_7(-1) == -7
-    # TODO add one interesting case I didn't check
+@pytest.mark.parametrize("num, sol", [(2, 14), (4, 28), (0, 0), (-1, -7)])
+def test_times_7_using_param(num, sol):
+    assert times_7(num) == sol
 
+@pytest.fixture
+def generate_numbers():
     random_generator = random.Random()
-    for i in range(10):
-        rnd_int = random_generator.randint(-1000, 1000)
-        # time_7(rnd_int) is like summing 7 items of rnd_int
-        assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
+    return [random_generator.randint(-1000, 1000) for i in range(10)]
+
+def test_times_7_using_fixture(generate_numbers):
+    for i in range(len(generate_numbers)):
+        assert times_7(generate_numbers[i]) == sum([generate_numbers[i] for j in range(7)])
 
         # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
+        # this assert doesn't work because if rnd_int is a negative number it is not true.
 
 
-# TODO Add a function and at least 3 tests
+def devide_by_two(num):
+    return num/2
 
-# TODO add a function that get data frame as an argument and return it after some preprocess/change
-# TODO test the function you wrote use assert_frame_equal and assert_series_equal
+@pytest.mark.parametrize("num, sol", [(2, 1), (4.2, 2.1), (0, 0), (-1, -0.5)])
+def test_devide_by_two(num, sol):
+    assert devide_by_two(num) == sol
 
+
+
+def change_df_index(df):
+    df = df.set_index(pd.Index(range(1,df.shape[0]+1)))
+    return df
+
+
+def test_change_df_index():
+    data = dict(person_name = ["Ron", "Roy", "Shay"], values = [3,6,2])
+    df1 = pd.DataFrame(data)
+    df2 = pd.DataFrame(data, index=[1,2,3])
+    pd.testing.assert_frame_equal(change_df_index(df1), df2)
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
 
 def test_weighted_average_raise_zero_division_error():
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    with pytest.raises(ZeroDivisionError):
+        assert compute_weighted_average((1,2,3), (-1,0,1))
