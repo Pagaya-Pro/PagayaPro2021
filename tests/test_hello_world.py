@@ -83,7 +83,7 @@ def times_7(number: Union[int, float]):
 
 # TODO make_me_2_functions_one_use_fixture_and_one_use_parametrize
 @pytest.fixture
-def numbers():
+def numbers_7():
     return [2, 4, 0, -1, 0.5]
 
 
@@ -92,8 +92,8 @@ def numbers_times_7():
     return [14, 28, 0, -7, 3.5]
 
 
-def test_times_7_fixture(numbers, numbers_times_7):
-    for index, number in enumerate(numbers):
+def test_times_7_fixture(numbers_7, numbers_times_7):
+    for index, number in enumerate(numbers_7):
         assert times_7(number) == numbers_times_7[index]
 
 
@@ -132,7 +132,7 @@ def test_module_2():
 
 
 @pytest.fixture
-def numbers():
+def numbers_2():
     return [2, 1, 0]
 
 
@@ -141,8 +141,8 @@ def numbers_module_2():
     return [0, 1, 0]
 
 
-def test_module_2_fixture(numbers, numbers_module_2):
-    for index, number in enumerate(numbers):
+def test_module_2_fixture(numbers_2, numbers_module_2):
+    for index, number in enumerate(numbers_2):
         assert module_2(number) == numbers_module_2[index]
 
 
