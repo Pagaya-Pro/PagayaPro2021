@@ -90,7 +90,7 @@ def ten_randoms_neg_1k_to_1k():
     return rnd_ints
 
 
-def test_times_7_using_fixture():
+def test_times_7_using_fixture(ten_randoms_neg_1k_to_1k):
     for rnd_int in ten_randoms_neg_1k_to_1k:
         assert times_7(rnd_int) == sum(rnd_int for i in range(7))
 
