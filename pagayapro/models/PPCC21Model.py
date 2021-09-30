@@ -17,3 +17,6 @@ class PPCC21Model:
     
     def predict(self, X):
         return self.model.predict(X[self.columns])
+
+    def predict_proba(self, X):
+        return self.model.predict_proba(X[self.columns])
