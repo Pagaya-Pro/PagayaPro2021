@@ -102,8 +102,11 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
 
 
 @pytest.mark.parametrize("number, value", [(2, 14), (4, 28), (0, 0), (-1, -7), (np.inf, np.inf)])
-def test_1_times_7(number, value):
+def test_fixed_examples_times_7(number, value):
     assert times_7(number) == value
+    assert np.isnan(times_7(np.nan))
+    # times_7(np.nan) is nan but since np.nan != np.nan we can't use the
+    # "parametrize" in its current configuration to test it
 
 
 @pytest.fixture
@@ -111,15 +114,16 @@ def random_generator():
     return random.Random()
 
 
-def test_2_times_7(random_generator):
+def test_random_numbers_times_7(random_generator):
     for i in range(10):
         rnd_int = random_generator.randint(-1000, 1000)
         assert times_7(rnd_int) == sum([rnd_int for _ in range(7)])
 
+
 # TODO Add a function and at least 3 tests
 def factorial(n):
     fact = 1
-    for i in range(1, n+1):
+    for i in range(1, n + 1):
         fact *= i
     return fact
 
@@ -132,22 +136,24 @@ def test_1_factorial(number, value):
 def test_2_factorial(random_generator):
     for i in range(10):
         rnd_int = random_generator.randint(0, 1000)
-        assert factorial(rnd_int) == factorial(rnd_int-1)*rnd_int
+        assert factorial(rnd_int) == factorial(rnd_int - 1) * rnd_int
 
 
+# factorial grows faster than 2^n so for every n> 3 n! > 2^n
 def test_3_factorial(random_generator):
     for i in range(10):
         rnd_int = random_generator.randint(4, 1000)
-        assert factorial(rnd_int) > 2**rnd_int
+        assert factorial(rnd_int) > 2 ** rnd_int
+
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
 # TODO test the function you wrote use assert_frame_equal and assert_series_equal
-def same_func(df, col_name):
-    return df.groupby(col_name).mean()#.reset_index()
+def get_mean_of_group(df, col_name):
+    return df.groupby(col_name).mean()
 
 
 @pytest.fixture
-def get_df():
+def df_to_groupby():
     df = pd.DataFrame(
         {
 
@@ -159,10 +165,8 @@ def get_df():
     return df
 
 
-def test_same_func(get_df):
-    s = pd.Series(data={'test': 2, 'train': 3}, index=pd.Index(pd.Categorical(["test", "train"])), dtype="float32",
-                  name='C')
-    s.index.set_names('E', inplace=True)
+@pytest.fixture
+def df_to_compare():
     df = pd.DataFrame(
         {
             "C": pd.Series([2, 3], dtype="float32"),
@@ -171,9 +175,12 @@ def test_same_func(get_df):
         }
     )
     df.set_index("E", inplace=True)
+    return df
 
-    pd.testing.assert_frame_equal(same_func(get_df, "E"), df)
-    pd.testing.assert_series_equal(same_func(get_df, "E")["C"], s)
+
+def test_get_mean_of_group(df_to_groupby, df_to_compare):
+    pd.testing.assert_frame_equal(get_mean_of_group(df_to_groupby, "E"), df_to_compare)
+    pd.testing.assert_series_equal(get_mean_of_group(df_to_groupby, "E")["C"], df_to_compare["C"])
 
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
@@ -181,6 +188,8 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
 
 
 def test_weighted_average_raise_zero_division_error():
-    # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    """
+     check that weighted_average raise zero division error when the sum of the weights is 0
+    """
     with pytest.raises(ZeroDivisionError):
         assert compute_weighted_average([1, 2, 3], [-1, 0, 1])
