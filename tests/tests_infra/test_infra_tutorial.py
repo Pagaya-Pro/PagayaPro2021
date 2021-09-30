@@ -96,7 +96,7 @@ def test_imputed_int_rate_is_close_to_real_int_rate(dummy_targets):
     This test checks that the imputed int_rate calculated by calculate_int_rate is close to the real int_rate
     """
     result = calculate_int_rate(dummy_targets)
-    assert_that(result).match_all_on_query("imputed_int_rate > 0.9 * int_rate & imputed_int_rate < 1.1 * int_rate")
+    assert_that(result).match_all_on_query("(imputed_int_rate > 0.9 * int_rate) & (imputed_int_rate < 1.1 * int_rate)")
 
 
 # !!! Assertions comparing two data frames !!! #
@@ -135,7 +135,7 @@ def test_dont_use_the_int_rate_column(dummy_targets):
 
 # !!! Snapshot tests !!! #
 
-recreate_snapshots_in_file(__file__)  # uncomment this line to update the snapshot
+# recreate_snapshots_in_file(__file__)  # uncomment this line to update the snapshot
 
 
 def test_the_logic_is_same_as_snapshot(dummy_targets):
@@ -216,7 +216,7 @@ def test_imputed_int_rate_is_close_to_real_int_rate_on_real_target(unsec_targets
     If you don't know what "fixture" is, see the test_hello_world.py file for pytest tutorial and exercise
     """
     result = calculate_int_rate(unsec_targets)
-    assert_that(result).match_all_on_query("imputed_int_rate > 0.9 * int_rate & imputed_int_rate < 1.1 * int_rate")
+    assert_that(result).match_all_on_query("(imputed_int_rate > 0.9 * int_rate) & (imputed_int_rate < 1.1 * int_rate)")
 
 
 def test_imputed_int_rate_on_fixed_15_targets(unsec_targets_fixed_15):
