@@ -106,6 +106,7 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
 
 @pytest.mark.parametrize("number, times_seven", [(0, 0), (-1, -7), (2, 14), (4, 28), (np.Inf, np.inf)])
 def test_times_7_param(number, times_seven):
+    assert np.isnan(times_7(np.nan)) # np.nan != np.nan in python. This checks that.
     assert times_7(number) == times_seven
 
 
@@ -144,7 +145,7 @@ def normalize(arr):
     return (arr - np.mean(arr)) / std
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 def curr_arr():
     return [1, 1, 1, 1]
 
@@ -154,12 +155,16 @@ def test_normalize_empty(curr_arr):
 
 
 def test_normalize_mean(curr_arr):
-    # Round in case it doesn't recognize it as 0, we have enough sign' digits.
+    '''
+    Round in case it doesn't recognize it as 0, we have enough sign' digits.
+    '''
     assert round(np.mean(normalize(curr_arr)),10) == 0, "Please check infs"
 
 
 def test_normalize_std(curr_arr):
-    # Round in case it doesn't recognize it as 0, we have enough sign' digits.
+    '''
+    Round in case it doesn't recognize it as 0, we have enough sign' digits.
+    '''
     assert round(np.std(normalize(curr_arr)),10) == 1, "Please use an array with more than 1 unique value."
 
 
