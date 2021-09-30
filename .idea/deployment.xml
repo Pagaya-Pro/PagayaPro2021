@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="AWS" autoUploadExternalChanges="true">
     <serverData>
+      <paths name="AWS">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/mnt/PagayaPro" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/.git" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
       <paths name="ubuntu@10.100.81.153:22">
         <serverdata>
           <mappings>
@@ -12,6 +22,21 @@
           </excludedPaths>
         </serverdata>
       </paths>
+      <paths name="ubuntu@guy.farhi.pro.pagaya.cloud:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/pycharm_project_783" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="ubuntu@guy.farhi.pro.pagaya.cloud:22 (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/mnt/PagayaPro/" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
     </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>

@@ -90,12 +90,6 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
     # VTODO add one interesting case I didn't check
     assert times_7(7) == 7 ** 2
 
-    random_generator = random.Random()
-    for i in range(10):
-        rnd_int = random_generator.randint(-1000, 1000)
-        # time_7(rnd_int) is like summing 7 items of rnd_int
-        assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
-
         # assert times_7(rnd_int) > rnd_int  # VTODO Explain why this assert doest work
         # not true in the negative value case ie times_7(-1) = -7 < -1 = rnd_int
 
@@ -104,33 +98,40 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize(x,y):
     assert times_7(x) == y
 
 @pytest.fixture()
-def someFixture():
+def param_and_res_fixture():
     class one_unit(object):
-        param = 10
-        res = 70
+        random_generator = random.Random()
+        param = []
+        res = []
+        for i in range(10):
+            rnd_int = random_generator.randint(-1000, 1000)
+            param.append(rnd_int)
+            res.append(7 * rnd_int)
     return one_unit
 
-def test_make_me_fixture(someFixture):
-    assert times_7(someFixture.param) == someFixture.res
+def test_make_me_fixture(param_and_res_fixture):
+    for i in range(len(param_and_res_fixture.param)):
+        # time_7(rnd_int) is like summing 7 items of rnd_int
+        assert times_7(param_and_res_fixture.param[i]) == param_and_res_fixture.res[i]
 
 # VTODO Add a function and at least 3 tests
-def getMaxOfArr(arr):
+def get_max_of_arr(arr):
     if arr==[]:
         return -math.inf
-    return max(arr[0], getMaxOfArr(arr[1:]))
-def test_normal_arr_getMaxOfArr():
-    assert getMaxOfArr([-3,3,44,-435,63636]) == 63636
-def test_empty_arr_getMaxOfArr():
-    assert getMaxOfArr([]) == -math.inf
-def test_floats_arr_getMaxOfArr():
-    assert getMaxOfArr([1.222,1.221,0.999, -0.00009, 1.22200000001]) == 1.22200000001
+    return max(arr[0], get_max_of_arr(arr[1:]))
+def test_normal_arr_get_max_of_arr():
+    assert get_max_of_arr([-3,3,44,-435,63636]) == 63636
+def test_empty_arr_get_max_of_arr():
+    assert get_max_of_arr([]) == -math.inf
+def test_floats_arr_get_max_of_arr():
+    assert get_max_of_arr([1.222,1.221,0.999, -0.00009, 1.22200000001]) == 1.22200000001
 # VTODO add a function that get data frame as an argument and return it after some preprocess/change
-def resetAndDropDF(df):
+def reset_and_drop_df(df):
     df_c = df.copy()
     df_c = df_c.reset_index()
     return df_c.dropna()
 # VTODO test the function you wrote use assert_frame_equal and assert_series_equal
-def test_resetAndDropDF():
+def test_reset_and_drop_df():
     data_before = {'product_name': ['laptop', 'printer', 'tablet', 'desk', 'chair', pd.NA],
             'price': [1200, 150, 300, 450, 200, pd.NA]
             }
@@ -138,8 +139,8 @@ def test_resetAndDropDF():
     df_before = pd.DataFrame(data_before).set_index('product_name')
 
     df_after = df_before.reset_index().dropna()
-    pd.testing.assert_frame_equal(resetAndDropDF(df_before), df_after)
-    pd.testing.assert_series_equal(resetAndDropDF(df_before)['product_name'],df_after['product_name'])
+    pd.testing.assert_frame_equal(reset_and_drop_df(df_before), df_after)
+    pd.testing.assert_series_equal(reset_and_drop_df(df_before)['product_name'],df_after['product_name'])
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
