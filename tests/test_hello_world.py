@@ -92,6 +92,7 @@ def rnd_int_list():
     random_generator = random.Random()
     return [random_generator.randint(-1000, 1000) for i in range(10)]
 
+
 def test_make_me_2_functions_one_use_fixture(rnd_int_list):
     for rnd_int in rnd_int_list:
         # time_7(rnd_int) is like summing 7 items of rnd_int
@@ -120,20 +121,15 @@ def power_2(a):
     return a**2
 
 @pytest.mark.parametrize("a,b", [(2,4),(4,16),(0,0),(-1,1),(1.5,2.25)])
-def test_power_2_use_parametrize(a,b):
+def test_power_2(a,b):
     assert power_2(a) == b
 
 
-@pytest.fixture()
-def rnd_int_list():
-    random_generator = random.Random()
-    return [random_generator.randint(-1000, 1000) for i in range(10)]
-
-def test_power_2_use_fixture(rnd_int_list):
+def test_power_2_using_random_numbers(rnd_int_list):
     for rnd_int in rnd_int_list:
         assert power_2(rnd_int) == rnd_int*rnd_int
 
-def test_power_2(rnd_int_list):
+def test_power_2_always_greater_than_0(rnd_int_list):
     for rnd_int in rnd_int_list:
         assert power_2(rnd_int)>=0
 
@@ -150,10 +146,14 @@ def data_frame_example():
              'B': [4, 3, 2, 1]}
     return pd.DataFrame(array)
 
+@pytest.fixture()
+def expected_result():
+    array = {'A': [11, 19, 13, 15],
+             'B': [14, 13, 12, 11]}
+    return pd.DataFrame(array)
 
-def test_sum_rows(data_frame_example):
-    expected_result= pd.DataFrame( {'A': [11, 19, 13, 15],
-             'B': [14, 13, 12, 11]})
+
+def test_sum_rows(data_frame_example, expected_result):
     pd.testing.assert_frame_equal(df_plus_10(data_frame_example),expected_result)
 
 
@@ -164,7 +164,7 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
 
 
 
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+# TODO check that weighted_average raise zero division error when the sum of the weights is 0
 
 def test_weighted_average_raise_zero_division_error():
     with pytest.raises(ZeroDivisionError):
