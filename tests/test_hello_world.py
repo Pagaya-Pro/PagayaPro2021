@@ -8,7 +8,9 @@ import random
 from typing import Union
 from typing import List
 
+import pandas as pd
 import pytest
+from pandas._testing import assert_series_equal
 
 
 def test_simple_test():
@@ -69,36 +71,78 @@ def test_fibonacci_using_fixture(first_fibonacci_numbers):
         assert fibonacci(item_index) == fibonacci_value
 
 
-# TODO test this function, make sure for example please_test_me("testing is great") = "testing is great!!!"
+
 def please_test_me(string: str) -> str:
     return string + "!!!"
+
+def test_please_test_me():
+    assert please_test_me("testing is great") == "testing is great!!!"
 
 
 def times_7(number: Union[int, float]):
     return number * 7
 
 
-# TODO make_me_2_functions_one_use_fixture_and_one_use_parametrize
+
 def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
     assert times_7(2) == 14
     assert times_7(4) == 28
     assert times_7(0) == 0
     assert times_7(-1) == -7
-    # TODO add one interesting case I didn't check
+    assert times_7(0.5) == 3.5
 
+@pytest.mark.parametrize("num", [2, 4, 0, -1, 0.5])
+
+def test_times_7_using_param(num):
+    assert times_7(num) == sum([num for i in range(7)])
+
+@pytest.fixture
+def num_gen():
     random_generator = random.Random()
+    ret_arr = []
     for i in range(10):
-        rnd_int = random_generator.randint(-1000, 1000)
-        # time_7(rnd_int) is like summing 7 items of rnd_int
-        assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
-
-        # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
+        ret_arr.append(random_generator.randint(-1000, 1000))
+    return ret_arr
 
 
-# TODO Add a function and at least 3 tests
+def test_times_7_using_fixture(num_gen):
+    for num in num_gen:
+        assert times_7(num) == sum([num for i in range(7)])
 
-# TODO add a function that get data frame as an argument and return it after some preprocess/change
-# TODO test the function you wrote use assert_frame_equal and assert_series_equal
+
+        # assert times_7(rnd_int) > rnd_int  # For negative inputs, the returned value will be smaller than the input, which is fine, but the test will fail.
+
+
+def boolean_xor(first, second):
+    return ((not first) and second) or (first and (not second))
+
+def test_boolean_xor_using_bools():
+    assert boolean_xor(True, True) == False
+    assert boolean_xor(True, False) == True
+    assert boolean_xor(False, True) == True
+    assert boolean_xor(False, False) == False
+
+def test_boolean_xor_using_binary():
+    assert boolean_xor(1, 1) == 0
+    assert boolean_xor(1, 0) == 1
+    assert boolean_xor(0, 1) == 1
+    assert boolean_xor(0, 0) == 0
+
+def test_boolean_xor_using_ints():
+    assert boolean_xor(22, 53) == 0
+    assert boolean_xor(156, 0) == 1
+    assert boolean_xor(0, 0) == 0
+
+
+def add_22_to_df_ints(df):
+    return df.sum(axis=0)
+
+def test_add_22_to_df_ints():
+    nums = [[1,2,3,4], [5,6,7,8]]
+    cols = ['first', 'second', 'third', 'fourth']
+    new_df = pd.DataFrame(nums, columns=cols)
+    new_ser = pd.Series(index=['first', 'second', 'third', 'fourth'], data=[6,8,10,12])
+    assert_series_equal(add_22_to_df_ints(new_df), new_ser)
 
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
@@ -106,4 +150,5 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
 
 
 def test_weighted_average_raise_zero_division_error():
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    with pytest.raises(ZeroDivisionError):
+        assert(compute_weighted_average([1,2,3],[-1,0,1]))
