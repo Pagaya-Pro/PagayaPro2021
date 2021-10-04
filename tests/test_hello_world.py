@@ -74,7 +74,7 @@ def please_test_me(string: str) -> str:
     return string + "!!!"
 
 
-@pytest.mark.parametrize("input_sentence, output_sentence", [("testing is great", "testing is great!!!")])
+@pytest.mark.parametrize("input_sentence, output_sentence", [("testing is great", "testing is great!!!"),("Let's see if this also works", "Let's see if this also works!!!")])
 def test_please_test_me(input_sentence, output_sentence):
     assert please_test_me(input_sentence) == output_sentence
 
@@ -89,9 +89,9 @@ def test_times_7_parametrize(input, output):
 
 
 @pytest.fixture
-def first_multiplies_of_7():
+def random_multiplies_of_7():
     """
-    This fixture is the first 10 no negative multiplication of 7.
+    This fixture is 10 random non negative integer multiplication of 7 + an additional float multiplication.
     """
     random_generator = random.Random()
     result = []
@@ -105,15 +105,15 @@ def first_multiplies_of_7():
     return result
 
 
-def test_times_7_using_fixture(first_multiplies_of_7):
+def test_times_7_using_fixture(random_multiplies_of_7):
     """
     Test the times_7 function. Tests the first elements of the series.
     Args:
-        first_multiplies_of_7: This is a fixture so it is automatically filled.
-            The first_multiplies_of_7 will have the first 10 no negative multiplication of 7
-            see first_multiplies_of_7() function.
+        random_multiplies_of_7: This is a fixture so it is automatically filled.
+            The random_multiplies_of_7 will have the first 10 no negative multiplication of 7
+            see random_multiplies_of_7() function.
     """
-    for test_tupple in first_multiplies_of_7:
+    for test_tupple in random_multiplies_of_7:
         assert times_7(test_tupple[0]) == test_tupple[1]
 
 
