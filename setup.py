@@ -8,5 +8,9 @@ setup(
     author_email='author@gmail.com',
     description='Description of my package',
     packages=find_packages(),    
-    install_requires=["papermill", "ipython", "jupyterlab", "pandas", "sklearn"],
+    install_requires=["papermill",
+                      "ipython",
+                      "jupyterlab",
+                      "pandas",
+                      "sklearn"],
 )
