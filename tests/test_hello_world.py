@@ -7,6 +7,7 @@ https://www.guru99.com/pytest-tutorial.html
 import random
 from typing import Union
 from typing import List
+import pandas as pd
 
 import pytest
 
@@ -69,36 +70,78 @@ def test_fibonacci_using_fixture(first_fibonacci_numbers):
         assert fibonacci(item_index) == fibonacci_value
 
 
-# TODO test this function, make sure for example please_test_me("testing is great") = "testing is great!!!"
+# TODO test this function, make sure for example please_test_me("testing is great") = "testing is great!!!" - done
 def please_test_me(string: str) -> str:
     return string + "!!!"
+
+
+def test_please_test_me():
+    assert isinstance(please_test_me('hi'), str)
+    assert please_test_me("testing is great") == "testing is great!!!"
+    assert please_test_me("!!!") == "!!!!!!"
 
 
 def times_7(number: Union[int, float]):
     return number * 7
 
 
-# TODO make_me_2_functions_one_use_fixture_and_one_use_parametrize
-def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
-    assert times_7(2) == 14
-    assert times_7(4) == 28
-    assert times_7(0) == 0
-    assert times_7(-1) == -7
-    # TODO add one interesting case I didn't check
+@pytest.mark.parametrize("num, num_times_7", [(2, 14),(4, 28),(0, 0),(-1, -7),(0.5, 3.5)])
+def test_times_7_use_parametrize(num, num_times_7):
+    assert times_7(num) == num_times_7
 
+
+@pytest.fixture
+def generate_random_nums():
+    """generate 10 random integers"""
     random_generator = random.Random()
-    for i in range(10):
-        rnd_int = random_generator.randint(-1000, 1000)
-        # time_7(rnd_int) is like summing 7 items of rnd_int
+    return [random_generator.randint(-1000, 1000) for i in range(10)]
+
+
+def test_times_7_use_fixture(generate_random_nums):
+    for idx, rnd_int in enumerate(generate_random_nums):
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
-        # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
+
+# TODO Add a function and at least 3 tests - done
+def factorial(a):
+    """calculates factorial of an integer"""
+    if a < 1 or a != int(a):
+        return -1
+    if a == 1:
+        return 1
+    return a * factorial(a-1)
 
 
-# TODO Add a function and at least 3 tests
+@pytest.mark.parametrize("num", [0,0.1,-3])
+def test_factorial_smaller_than_1(num):
+    assert factorial(num) == -1
 
-# TODO add a function that get data frame as an argument and return it after some preprocess/change
-# TODO test the function you wrote use assert_frame_equal and assert_series_equal
+
+@pytest.mark.parametrize("num, fact", [(3, 6),(4, 24),(1, 1)])
+def test_factorial_legit(num, fact):
+    assert factorial(num) == fact
+
+
+@pytest.mark.parametrize("num", [1.1,1.8,13.9])
+def test_factorial_not_an_integer(num):
+    assert factorial(num) == -1
+
+
+# TODO add a function that get data frame as an argument and return it after some preprocess/change - done
+def keep_even_rows(df: pd.DataFrame):
+    """keeps only even rows of DF"""
+    return df.iloc[::2].reset_index(drop=True)
+
+
+# TODO test the function you wrote use assert_frame_equal and assert_series_equal - done
+def test_keep_even_rows():
+    df = pd.DataFrame({'a' : [1,2,3,4], 'b' : [5,6,7,8], 'c' : [9,10,11,12]})
+    df_even = pd.DataFrame({'a' : [1, 3], 'b' : [5,7], 'c' : [9, 11]})
+    pd.testing.assert_frame_equal(keep_even_rows(df), df_even, check_less_precise=True)
+
+    ser = pd.Series([1,2,3,4])
+    ser_even = pd.Series([1,3])
+    pd.testing.assert_series_equal(keep_even_rows(ser), ser_even)
 
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
@@ -106,4 +149,7 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
 
 
 def test_weighted_average_raise_zero_division_error():
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    """check that exception is raised when w sums to 0"""
+    with pytest.raises(ZeroDivisionError):
+        assert compute_weighted_average([1,2,3,4], [1,1,-1,-1])
+    # TODO check that weighted_average raise zero division error when the sum of the weights is 0 - done
