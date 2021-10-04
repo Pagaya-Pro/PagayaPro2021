@@ -117,30 +117,30 @@ def test_times_7_parametrize(num):
 
 
 # TODO Add a function and at least 3 tests
-def my_func(name: str) -> bool:
+def does_contain_my_name(name: str) -> bool:
     '''
-    @ret == True iff name contains the string 'oded', lower or upper case //
+    @ret == True iff name contains the string 'oded', lower or upper case
     '''
     name = str.lower(name)
     return 'oded' in name
 
-def test_my_func():
-    assert my_func("Ron Wettenstein") == False
-    assert my_func('oded goffer') == True
-    assert my_func('Oded Goffer') == True
+def test_does_contain_my_name():
+    assert does_contain_my_name("Ron Wettenstein") == False
+    assert does_contain_my_name('oded goffer') == True
+    assert does_contain_my_name('Oded Goffer') == True
 
 @pytest.fixture
-def name_generator():
+def generated_name():
     fake = Faker()
     return fake.name()
 
-def test_my_func_fixture(name_generator):
+def test_does_contain_my_name_fixture(generated_name):
     name = str.lower(name_generator)
-    assert my_func(name_generator) == ('oded' in name)
+    assert does_contain_my_name(name_generator) == ('oded' in name)
 
 @pytest.mark.parametrize("name", ['oded', 'yuval', 'OdeD', 'Guy', 'GOD'])
-def test_my_func_parametrize(name):
-    assert (str.lower(name) == 'oded') == my_func(name)
+def test_does_contain_my_name_parametrize(name):
+    assert (str.lower(name) == 'oded') == does_contain_my_name(name)
 
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
@@ -168,7 +168,9 @@ def test_num_frame_diagonal_to_trace_series(series):
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
-# TODO check that weighted_average raise zero division error when the sum of the weights is 0
 def test_weighted_average_raise_zero_division_error():
+    '''
+    TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    '''
     with pytest.raises(ZeroDivisionError):
         compute_weighted_average([1,1,1],[-1,1,0])
