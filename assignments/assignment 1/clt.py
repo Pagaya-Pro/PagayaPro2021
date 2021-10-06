@@ -31,4 +31,3 @@ def means_sampling_plotting(s, n):
     plt.legend()
     plt.show()
 
-
