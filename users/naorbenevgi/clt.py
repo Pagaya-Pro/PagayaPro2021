@@ -1,4 +1,6 @@
-
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 def create_mean_samples(series,n,num_of_means=10000):
     """
