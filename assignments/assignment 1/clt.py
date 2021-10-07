@@ -24,10 +24,9 @@ def means_sampling_plotting(s, n):
     """
     num_means = int(np.sqrt(len(s)))
     s_mean = s.values.mean()
-    plt.title(f'Distribution of the Means - Series mean is {s_mean:.3f}')
+    plt.title(f'Distribution of the Means - Series mean is {s_mean:.3f}, n = {n}')
     plt.xlabel('Mean Value')
     plt.axvline(x=s_mean, label='Input Series Mean', color='r')
     sns.distplot(np.mean(np.random.choice(s.values, size=(num_means, n)), axis=1), label='Means')
     plt.legend()
-    plt.show()
 
