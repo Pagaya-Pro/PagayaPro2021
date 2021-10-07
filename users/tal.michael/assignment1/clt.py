@@ -11,7 +11,8 @@ def CLT(S, n):
 def plot_CLT(S, n):
     ser = CLT(S, n)
     title = 'CLT histogram of {} entries \n mean: {:.3f} percent'.format(n, ser.mean())
-    sns.distplot(ser, bins = int(np.sqrt(ser.unique().shape)), color = "lightpink");
+    sns.distplot(ser, bins = int(np.sqrt(ser.unique().shape)), color = "lightpink")
+    plt.figure(figsize=(10, 5))
     plt.title(title)
     plt.grid(True)
     plt.show()
