@@ -118,12 +118,12 @@ def test_times_7_using_fixture(random_multiplies_of_7):
 
 
 def calc_factorial(n: int):
-    if not ((n >= 0) and (int(n) == n)):
-        raise ArithmeticError("cant calculate factorial of non integer:",n)
+    if n < 0 or n % 1 != 0:
+        raise ArithmeticError("cant calculate factorial of non positive integer:",n)
     elif (n <= 1):
         return 1
 
-    return np.prod(np.arange(1,n+1))
+    return np.math.factorial(n)
 
 
 @pytest.mark.parametrize("input, output", [(0,1),(1,1),(2,2),(4,24),(6,720)])
