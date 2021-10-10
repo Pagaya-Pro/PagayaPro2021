@@ -5,9 +5,8 @@ You can learn about pytest here:
 https://www.guru99.com/pytest-tutorial.html
 """
 import random
-from typing import Union
-from typing import List
-
+from typing import Union, List
+import pandas as pd
 import pytest
 
 
@@ -74,36 +73,78 @@ def please_test_me(string: str) -> str:
     return string + "!!!"
 
 
+def test_please_test_me():
+    assert please_test_me("wow!!!") == "wow!!!!!!"
+
+
 def times_7(number: Union[int, float]):
     return number * 7
 
 
 # TODO make_me_2_functions_one_use_fixture_and_one_use_parametrize
-def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
-    assert times_7(2) == 14
-    assert times_7(4) == 28
-    assert times_7(0) == 0
-    assert times_7(-1) == -7
-    # TODO add one interesting case I didn't check
+@pytest.mark.parametrize("a, a_times_7", [(2,14), (4,28), (0,0), (-1,-7), (1/2,7/2)])
+def test_times_7_with_parametrize(a, a_times_7):
+    assert times_7(a) == a_times_7
 
+@pytest.fixture
+def generate_test_numbers():
     random_generator = random.Random()
-    for i in range(10):
-        rnd_int = random_generator.randint(-1000, 1000)
-        # time_7(rnd_int) is like summing 7 items of rnd_int
-        assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
+    return [random_generator.randint(-1000, 1000) for i in range(10)]
 
+def test_times_7_with_fixture(generate_test_numbers):
+    for rnd_int in generate_test_numbers:
+        assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
         # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
+        # Won't work because it isn't enough for the result to be greater than the parameter.
+        # For example, 6>5 but 6 isn't 5 times 7.
 
 
 # TODO Add a function and at least 3 tests
+def subtract_3(x):
+    return x-3
+
+def test_subtract_3():
+    assert subtract_3(10) == 7
+
+@pytest.mark.parametrize("a, a_minus_3", [(3,0), (0,-3), (1003.5, 1000.5), (-34, -37)])
+def test_subtract_3_with_parametrize(a, a_minus_3):
+    assert subtract_3(a) == a_minus_3
+
+@pytest.fixture
+def generate_test_numbers():
+    random_generator = random.Random()
+    return [random_generator.randint(-1000, 1000) for i in range(10)]
+
+def test_subtract_3_with_fixture(generate_test_numbers):
+    for rnd_int in generate_test_numbers:
+        assert subtract_3(rnd_int)+3 == rnd_int
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
-# TODO test the function you wrote use assert_frame_equal and assert_series_equal
+def rename_first_col(df, new_name):
+    old_name = df.columns[0]
+    return df.rename(columns={old_name: new_name})
 
+# TODO test the function you wrote use assert_frame_equal and assert_series_equal
+@pytest.fixture
+def dfs_to_test():
+    df = pd.DataFrame([[1,2,3],[4,5,6]])
+    df.columns = ["test", "hello", "world"]
+    df2 = df.copy()
+    df2.columns = ["pytest", "hello", "world"]
+    return [df, df2]
+
+def test_rename_first_col(dfs_to_test):
+    pd.testing.assert_frame_equal(rename_first_col(dfs_to_test[0],'pytest'),dfs_to_test[1])
+    pd.testing.assert_series_equal(rename_first_col(dfs_to_test[0], 'pytest').iloc[:,0], dfs_to_test[1].iloc[:,0])
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
 
 def test_weighted_average_raise_zero_division_error():
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    """
+    Check that weighted_average raise zero division error when the sum of the weights is 0
+    """
+    with pytest.raises(ZeroDivisionError):
+        assert compute_weighted_average([1,2],[-1,1])
+
