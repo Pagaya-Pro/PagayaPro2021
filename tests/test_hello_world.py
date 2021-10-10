@@ -9,6 +9,9 @@ from typing import Union
 from typing import List
 
 import pytest
+import pandas as pd
+import numpy as np
+import math
 
 
 def test_simple_test():
@@ -74,6 +77,12 @@ def please_test_me(string: str) -> str:
     return string + "!!!"
 
 
+@pytest.mark.parametrize("orig_str, expected_str", [("testing is great", "testing is great!!!"),
+                                                    ("testing hello world", "testing hello world!!!")])
+def test_please_test_me(orig_str, expected_str):
+    assert please_test_me(orig_str) == expected_str
+
+
 def times_7(number: Union[int, float]):
     return number * 7
 
@@ -85,6 +94,7 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
     assert times_7(0) == 0
     assert times_7(-1) == -7
     # TODO add one interesting case I didn't check
+    assert round(times_7(1.4), 2) == 9.8
 
     random_generator = random.Random()
     for i in range(10):
@@ -93,12 +103,83 @@ def test_make_me_2_functions_one_use_fixture_and_one_use_parametrize():
         assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
 
         # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
+        # Explain: for negative values this assumption isn't true
+
+
+@pytest.mark.parametrize("num, num_times_7", [(2, 14), (4, 28), (0, 0), (-1, -7), (1, 7)])
+def test_times_7_parametrize(num, num_times_7):
+    assert times_7(num) == num_times_7
+
+
+@pytest.fixture
+def random_number():
+    return [random.Random().randint(-1000, 1000) for i in range(10)]
+
+
+def test_times_7_fixture(random_number):
+    for i in range(10):
+        assert times_7(random_number[i]) == sum([random_number[i] for j in range(7)])
 
 
 # TODO Add a function and at least 3 tests
+def absolute_value(number: Union[int, float]):
+    return math.sqrt(pow(number, 2))
+
+
+@pytest.mark.parametrize("num", [1, 2, 5.5, 100])
+def test_positive_absolute_value(num):
+    assert absolute_value(num) == num
+
+
+@pytest.fixture
+def negative_value():
+    return random.Random().randint(-1000, -1)
+
+
+def test_negative_integer_absolute_value(negative_value):
+    assert absolute_value(negative_value) == 0 - negative_value
+
+
+@pytest.mark.parametrize("num", [-1.1, -7.8, -99.9])
+def test_negative_float_abolute_value(num):
+    assert absolute_value(num) == 0 - num
+
+
+def test_zero_absolute_value():
+    assert absolute_value(0) == 0
+
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
 # TODO test the function you wrote use assert_frame_equal and assert_series_equal
+def add_ones_column(df: pd.DataFrame) -> pd.DataFrame:
+    df['ones'] = np.ones(df.shape[0])
+    return df
+
+
+@pytest.fixture
+def data_frame_example():
+    data = dict(
+        person_name=["Ron", "Roy", "Shai", "Yuval"],
+        values=[1, 4, 3, 2]
+    )
+    return pd.DataFrame(data)
+
+
+@pytest.fixture
+def expected_data_frame():
+    expected_df = pd.DataFrame(dict(
+        person_name=["Ron", "Roy", "Shai", "Yuval"],
+        values=[1, 4, 3, 2],
+        ones=[1., 1., 1., 1.])
+    )
+    return expected_df
+
+
+def test_add_ones_column(data_frame_example, expected_data_frame):
+    tested_df = add_ones_column(data_frame_example)
+    # expected_df = expected_data_frame
+    pd.testing.assert_frame_equal(tested_df, expected_data_frame)
+    pd.testing.assert_series_equal(tested_df.ones, expected_data_frame.ones)
 
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
@@ -106,4 +187,9 @@ def compute_weighted_average(x: List[float], w: List[float]) -> float:
 
 
 def test_weighted_average_raise_zero_division_error():
-    pass  # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    """
+    check that weighted_average raise zero division error when the sum of the weights is 0
+    """
+    # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    with pytest.raises(ZeroDivisionError):
+        assert compute_weighted_average([1, 2, 3], [-1, 0, 1])
