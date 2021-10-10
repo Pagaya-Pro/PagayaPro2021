@@ -7,7 +7,7 @@ https://www.guru99.com/pytest-tutorial.html
 import random
 from typing import Union
 from typing import List
-
+from functools import reduce
 import pandas as pd
 import pytest
 
@@ -88,21 +88,23 @@ def times_7(number: Union[int, float]):
 def test_make_me_2_functions_one_use_parametrize(multiply, expected_result):
     assert times_7(multiply) == expected_result
 
-    random_generator = random.Random()
-    for i in range(10):
-        rnd_int = random_generator.randint(-1000, 1000)
-        # time_7(rnd_int) is like summing 7 items of rnd_int
-        assert times_7(rnd_int) == sum([rnd_int for i in range(7)])
-
         # assert times_7(rnd_int) > rnd_int  # TODO Explain why this assert doest work
         # The above assertion doesn't work because for negative values, multiplying by 7 isn't greater than the original number
 
-@pytest.fixture
-def time_7_number():
-    return [(2, 14), (4, 28), (0, 0), (-1, -7), (0.5, 3.5)]
 
-def test_make_me_2_functions_one_use_fixture(time_7_number):
-    for num_pair in time_7_number:
+@pytest.fixture
+def time_7_numbers():
+    random_generator = random.Random()
+    test_vals = []
+    for i in range(10):
+        rnd_int = random_generator.randint(-1000, 1000)
+        # time_7(rnd_int) is like summing 7 items of rnd_int
+        test_vals.append((rnd_int, sum([rnd_int for j in range(7)])))
+    return test_vals
+
+
+def test_make_me_2_functions_one_use_fixture(time_7_numbers):
+    for num_pair in time_7_numbers:
         assert times_7(num_pair[0]) == num_pair[1]
 
 
@@ -120,6 +122,18 @@ def my_factorial(n: int):
 def test_my_factorial(number):
     from math import factorial
     assert my_factorial(number) == factorial(number)
+
+
+def test_my_factorial2():
+    with pytest.raises(ValueError):
+        assert my_factorial(-1)
+
+
+def test_my_factorial3():
+    random_generator = random.Random()
+    for i in range(10):
+        rnd_int = random_generator.randint(1, 1000)
+        assert my_factorial(rnd_int) == reduce(lambda x, y: x * y, [i for i in range(1, rnd_int+1)])
 
 
 # TODO add a function that get data frame as an argument and return it after some preprocess/change
