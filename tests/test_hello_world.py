@@ -135,13 +135,16 @@ def dfs_to_test():
 
 def test_rename_first_col(dfs_to_test):
     pd.testing.assert_frame_equal(rename_first_col(dfs_to_test[0],'pytest'),dfs_to_test[1])
+    pd.testing.assert_series_equal(rename_first_col(dfs_to_test[0], 'pytest').iloc[:,0], dfs_to_test[1].iloc[:,0])
 
 def compute_weighted_average(x: List[float], w: List[float]) -> float:
     return sum([x1 * w1 for x1, w1 in zip(x, w)]) / sum(w)
 
 
 def test_weighted_average_raise_zero_division_error():
-    # TODO check that weighted_average raise zero division error when the sum of the weights is 0
+    """
+    Check that weighted_average raise zero division error when the sum of the weights is 0
+    """
     with pytest.raises(ZeroDivisionError):
         assert compute_weighted_average([1,2],[-1,1])
 
