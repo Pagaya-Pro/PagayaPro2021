@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def means_sampling(s, n):
+def means_sampling(s: np.series, n: int):
     """
-    Samples sqrt(len(s)) samples of size n and calculates mean for each one
+    Samples sqrt(len(s)) samples of size n from the series s, and calculates mean for each one
     :param s: Pandas Series of numerical values
     :param n: int, size of each sample
     :return: ndarray of shape (len(s),)
@@ -14,10 +14,10 @@ def means_sampling(s, n):
     return np.mean(np.random.choice(s.values, size=(num_means, n)), axis=1)
 
 
-def means_sampling_plotting(s, n):
+def means_sampling_plotting(s: np.series, n: int):
     """
-    Samples sqrt(len(s)) samples of size n, calculates mean for each one and plots histogram of the means along with the
-    mean of s
+    Samples sqrt(len(s)) samples of size n from the series s, calculates mean for each one and plots histogram of the means along with the
+    mean of the series means (as I explained in the notebook)
     :param s: Pandas Series
     :param n: int, size of each sample
     :return: None
