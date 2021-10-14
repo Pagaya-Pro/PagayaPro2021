@@ -22,9 +22,10 @@ def means_sampling_plotting(s: np.series, n: int):
     :param n: int, size of each sample
     :return: None
     """
-    mean_samples = np.mean(np.random.choice(s.values, size=(num_means, n)), axis=1)
+    mean_samples = means_sampling(s, n)
     mean_of_means = mean_samples.mean()
     s_mean = s.values.mean()
+    
     plt.title(f'Distribution of the Means - Series mean is {s_mean:.3f}, n = {n}')
     plt.xlabel('Mean Value')
     plt.axvline(x=mean_of_means, label='Mean of Means', color='r')
