@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def means_sampling(s, n):
+def means_sampling(s: np.series, n: int):
     """
-    Samples sqrt(len(s)) samples of size n and calculates mean for each one
+    Samples sqrt(len(s)) samples of size n from the series s, and calculates mean for each one
     :param s: Pandas Series of numerical values
     :param n: int, size of each sample
     :return: ndarray of shape (len(s),)
@@ -14,19 +14,20 @@ def means_sampling(s, n):
     return np.mean(np.random.choice(s.values, size=(num_means, n)), axis=1)
 
 
-def means_sampling_plotting(s, n):
+def means_sampling_plotting(s: np.series, n: int):
     """
-    Samples sqrt(len(s)) samples of size n, calculates mean for each one and plots histogram of the means along with the
-    mean of s
+    Samples sqrt(len(s)) samples of size n from the series s, calculates mean for each one and plots histogram of the means along with the
+    mean of the series means (as I explained in the notebook)
     :param s: Pandas Series
     :param n: int, size of each sample
     :return: None
     """
-    num_means = int(np.sqrt(len(s)))
+    mean_samples = means_sampling(s, n)
+    mean_of_means = mean_samples.mean()
     s_mean = s.values.mean()
+    
     plt.title(f'Distribution of the Means - Series mean is {s_mean:.3f}, n = {n}')
     plt.xlabel('Mean Value')
-    plt.axvline(x=s_mean, label='Input Series Mean', color='r')
-    sns.distplot(np.mean(np.random.choice(s.values, size=(num_means, n)), axis=1), label='Means')
+    plt.axvline(x=mean_of_means, label='Mean of Means', color='r')
+    sns.distplot(mean_samples, label='Means')
     plt.legend()
-
