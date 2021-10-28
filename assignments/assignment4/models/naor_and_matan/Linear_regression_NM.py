@@ -1,15 +1,14 @@
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
+# import pandas as pd
+# import numpy as np
+# import seaborn as sns
+# import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 
 class Linear_regression_NM(LogisticRegression):
 
-    def __init__(self,threshold=0.35,max_co_linearity=0.8):
+    def __init__(self,co_linearity_threshold=0.35):
         LogisticRegression.__init__(self)
-        self.threshold = threshold
-        self.max_co_linearity = max_co_linearity
+        self.co_linearity_threshold = co_linearity_threshold
 
 
     def fit(self, X, y):
