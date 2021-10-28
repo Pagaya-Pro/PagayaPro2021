@@ -2,7 +2,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from Linear_regression_NM import Linear_regression_NM
 from PreProcessor_NM import PreProcessor_NM
-
+# from sklearn.xgboost import XGBRegressor
+import xgboost as xgb
 # from pagayapro.paths.data_paths import ASSIGNMENT4_DATA
 from sklearn.pipeline import Pipeline
 import pandas as pd
