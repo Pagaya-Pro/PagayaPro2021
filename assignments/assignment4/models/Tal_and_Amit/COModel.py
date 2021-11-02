@@ -26,7 +26,6 @@ class COModel(BaseEstimator, ClassifierMixin):
         if 'co_mob' in X:
             X.drop('co_mob', axis=1, inplace=True)
 
-
         if 'borrower_city' in X:
             X.drop('borrower_city', axis=1, inplace=True)
 
