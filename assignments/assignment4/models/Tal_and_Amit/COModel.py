@@ -9,7 +9,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 
 class COModel(BaseEstimator, ClassifierMixin):
 
-    def __init__(self, threshold=0.5):
+    def __init__(self, threshold=0.65):
         self.pipe = Pipeline([('scaler', StandardScaler()), ('model', LogisticRegression())])
         self.threshold = 1 - threshold
 
@@ -25,6 +25,7 @@ class COModel(BaseEstimator, ClassifierMixin):
     def data_preparation(self, X, is_train=False, y=None):
         if 'co_mob' in X:
             X.drop('co_mob', axis=1, inplace=True)
+
 
         if 'borrower_city' in X:
             X.drop('borrower_city', axis=1, inplace=True)
