@@ -120,7 +120,7 @@ class CoClassifier(BaseEstimator, ClassifierMixin):
         self._model.fit(X, y)
         return self
 
-    def predict(self, X):
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         """
         Predicts charge-off for given loans.
         The model is capable of predicting only new loans, means the issue_date must be later than the latest issue_date
@@ -183,7 +183,7 @@ class CoClassifier(BaseEstimator, ClassifierMixin):
         probs = self.predict_proba(X)
         return (probs[:, 1] >= BEST_THRESHOLD).astype(int)
 
-    def predict_proba(self, X):
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         """
         Predicts charge-off probabilities for given loans
         :param X: Pandas DataFrame of loans data, containing the following columns: all804 - float64
