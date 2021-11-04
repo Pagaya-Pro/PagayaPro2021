@@ -14,7 +14,7 @@ class CO_classifier():
         # Save first date
         self.first_date = X['issue_date'].min()
         # preprocess input
-        X_c = self.preprocess_data(self, X)
+        X_c = self.preprocess_data(X)
         # fit data
         self.lr = Pipeline((('Scaler', StandardScaler()),
                             ('LR', LogisticRegression())))
@@ -22,18 +22,19 @@ class CO_classifier():
         weights = np.ones(len(X_c))
         weights[y == 1] = 5
         self.lr.fit(X_c, y, LR__sample_weight=weights)
+        return self
 
     def predict(self, X):
         # preprocess input
-        X_c = self.preprocess_data(self, X)
+        X_c = self.preprocess_data(X)
         return self.lr.predict(X_c)
 
     def predict_proba(self, X):
         # preprocess input
-        X_c = self.preprocess_data(self, X)
+        X_c = self.preprocess_data(X)
         return self.lr.predict_proba(X_c)
 
-    def preprocess_data(self,X):
+    def preprocess_data(self, X):
         # drop irrelevant features
         X_c = self.drop_features(X)
         self.encode_occupation(X_c)
