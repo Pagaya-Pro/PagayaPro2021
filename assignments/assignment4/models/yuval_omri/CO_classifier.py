@@ -9,47 +9,40 @@ class CO_classifier():
         self.features_to_drop = ['borrower_city','co_amount','all801','all804','all803','all807','total_inquiries','aut720','ale720','iln724','iln720','in36s','monthly_pmt','bc102s','re102s','bac302','hr09s','mt47s','mt36s','rev703','rep001','g099s','hr24s','rep901']
 
     def fit(self, X, y):
-        #drop irrelevant features
-        X_c = self.drop_features(X.copy())
-        #encode occupation
+        # encode occupation
         self.train_mean_CO, self.occupation_encoder = self.calc_occupation_encoder(X, y)
-        self.encode_occupation(X_c)
-        #Save first date and convert to days
-        self.first_date = X_c['issue_date'].min()
-        self.parse_issue_date(X_c)
-        #change loan amount to log loan amount
-        self.loan_amnt_to_log(X_c)
-
+        # Save first date
+        self.first_date = X['issue_date'].min()
+        # preprocess input
+        X_c = self.preprocess_data(self, X)
+        # fit data
         self.lr = Pipeline((('Scaler', StandardScaler()),
                             ('LR', LogisticRegression())))
-        #Give CO loans more weight
+        # Give CO loans more weight
         weights = np.ones(len(X_c))
         weights[y == 1] = 5
         self.lr.fit(X_c, y, LR__sample_weight=weights)
 
-
     def predict(self, X):
-        # drop irrelevant features
-        X_c = self.drop_features(X.copy())
-        # encode occupation
-        self.encode_occupation(X_c)
-        # Convert to days from first train date
-        self.parse_issue_date(X_c)
-        # change loan amount to log loan amount
-        self.loan_amnt_to_log(X_c)
+        # preprocess input
+        X_c = self.preprocess_data(self, X)
         return self.lr.predict(X_c)
 
     def predict_proba(self, X):
+        # preprocess input
+        X_c = self.preprocess_data(self, X)
+        return self.lr.predict_proba(X_c)
+
+    def preprocess_data(self,X):
         # drop irrelevant features
-        X_c = self.drop_features(X.copy())
-        # encode occupation
+        X_c = self.drop_features(X)
         self.encode_occupation(X_c)
-        # Convert to days from first train date
+        #change dates to days diff
         self.parse_issue_date(X_c)
         # change loan amount to log loan amount
         self.loan_amnt_to_log(X_c)
+        return X_c
 
-        return self.lr.predict_proba(X_c)
 
     def drop_features(self,X):
         #drop all the features we saw was problematic - high variance or high multicollinearity
