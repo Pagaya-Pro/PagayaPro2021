@@ -46,8 +46,7 @@ class CO_classifier():
 
     def drop_features(self,X):
         #drop all the features we saw was problematic - high variance or high multicollinearity
-        X_c = X.copy()
-        return X_c.drop(columns=self.features_to_drop)
+        return X.drop(columns=self.features_to_drop)
 
     def calc_occupation_encoder(self, X, y):
     #Create an encoder with the predicted CO rates per occupation
