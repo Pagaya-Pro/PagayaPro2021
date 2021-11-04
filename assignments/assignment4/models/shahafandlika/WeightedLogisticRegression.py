@@ -3,19 +3,21 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
-# from pagayapro.paths.data_paths import ASSIGNMENT4_DATA
-# import os
 import numpy_financial as npf
 from sklearn import preprocessing
 
 class WeightedLogisticregression():
-    THRESHOLD = 0.45
-    WEIGHTS = {1:5, 0:1}
-    CORR_THR = 0.4
 
-    def __init__(self):
+    def __init__(self, threshold=0.45, weights={1:5, 0:1}, corr_thr=0.4):
         """
-        makes an instance of WeightedLogisticregression, a model that can find a "good" portfolio for investments
+        Initiates an instance of WeightedLogisticregression - model that maximizes IRR per given portfolio.
+        The model receives loan transaction data X, and labels y that indicate whether a loan will CO, and gives predictions such that the IRR of X is optimal
+
+        :param threshold - the threshold that decides if the label of an instance is 0/1 -
+               if the probability is smaller than threshold - the label will be 1
+        :param weights - the ratio between CO/non-CO. default: 5/1
+        :param corr_thr - this is a hyper parameter for reducing colinearity.
+               If two columns have correlation smaller than this value, they are not concidered correlated. default" 0.4
         """
         self.y = None  # only used during the fit, i can move it into the fit
         self.weighted_pipe = None
@@ -25,55 +27,57 @@ class WeightedLogisticregression():
 
     def fit(self, X, y):
         """
-        fits the model to labeled data
-        :param X: pandas.DataFrame object used for fitting,
-         current version (v0.00001) must include the columns 'occupation', 'issue_date', 'loan_amnt'
+        Fits the model to labeled data. The model processes the data and filters columns to deal with multicolinearity.
+        :param X: pandas.DataFrame object used for fitting, current version (v0.00001)
         :param y: a vector of [0,1] or [value,Nan] of the same length as X to be used as labels
         :return: a fitted model
         """
         preprocessed_X = self.__apply_transformation_to_data(X, y)
-        self.weighted_pipe = make_pipeline(StandardScaler(), LogisticRegression(class_weight=WeightedLogisticregression.WEIGHTS))
+        self.weighted_pipe = make_pipeline(StandardScaler(), LogisticRegression(class_weight=self.weights))
         self.weighted_pipe.fit(preprocessed_X, self.y)
         return self
 
     def predict(self, X):
         """
-        Must be called after fit. predicts the
-        :param X:
-        :return: the loans the model thinks are good. 1 is will Co, 0 is wont Co
+        Must be called after fit. Predicts the labels of X by the model. The model processes the data and filters columns to deal with multicolinearity.
+        Only numeric columns are used to make the predictions in the model
+        :param X: pandas.DataFrame object used for fitting, current version (v0.00001)
+        :return: predictions of the model (0,1) to every instance in X
         """
         preprocessed_X = self.__apply_transformation_to_data(X, None)
         pipe_proba = self.weighted_pipe.predict_proba(preprocessed_X)[:1]
-        return (pipe_proba <= WeightedLogisticregression.THRESHOLD).astype('int')
+        return (pipe_proba <= self.threshold).astype('int')
 
     def predict_proba(self, X):
         """
-        predicts the probability of Co and non Co according to a fitted model
+        predicts the probability of CO and non CO according to a fitted model
         :param X: Data about loans
-        :return: probabilities that the loans will co and not co
+        :return: probabilities that the loans will CO and not CO
         """
         preprocessed_X = self.__apply_transformation_to_data(X)
         return self.weighted_pipe.predict_proba(preprocessed_X)
 
     def __apply_transformation_to_data(self, X, y=None):
         """
-        Transforms the labels into usable data and fixes X
+        Internal function for initiating the model
+        Transforms the labels into 0/1 (if necessary)
+        Processes X: uses only numeric columns and filters columns to reduce multicolinearity
         :param X: the data
         :param y: labels
         :return: preprocessed X
         """
         if y is not None:
-            if y.isna().sum() == 0:
+            if y.isna().any() == False:
                 self.y = y
             else:
                 self.y = (~y.isna()).astype('int')  # 1 is CO, 0 no CO
-            self.y.columns = ['co_mob']
-            # 1) I need to add a סיומת to the y column
-            # so that it will certainly be unique, but this implementation should be good enough for this demo
-            # 2) if i was making this app generic i wouldn't demand "occupation"
-            # i would simply convert all catergorical data this way
-            if 'occupation' in X.columns:
-                self.occupation_map = pd.concat([X, self.y], axis=1).groupby('occupation')['co_mob'].mean()
+            # self.y.columns = ['co_mob']
+            # # 1) I need to add a סיומת to the y column
+            # # so that it will certainly be unique, but this implementation should be good enough for this demo
+            # # 2) if i was making this app generic i wouldn't demand "occupation"
+            # # i would simply convert all catergorical data this way
+            # if 'occupation' in X.columns:
+            #     self.occupation_map = pd.concat([X, self.y], axis=1).groupby('occupation')['co_mob'].mean()
 
         numerical_X = self.__make_numerical(X)
         if self.good_columns is None:
@@ -88,10 +92,8 @@ class WeightedLogisticregression():
         """
         Internal function for preprocessing X
         :param X: data where some of the columns are non-numerical
-        :return: processed data
+        :return: data with only numeric columns
         """
-
-        # If i want to make this method super generic i would just do this...
         return X.select_dtypes(include='number')
 
         # # if i want to make this function more like what i did in the assignment i would do this
@@ -122,9 +124,10 @@ class WeightedLogisticregression():
 
     def __filter_features(self, X):
         """
-        removes features that are too highly correlated with each other
+        Internal function for preprocessing X
+        Removes features that are too highly correlated with each other
         :param X: the training data
-        :return: X with no columns that are too highly correlated with each other
+        :return: X with columns that their correlation is smaller then self.corr_thr
         """
         filtered_X = X.copy()
 
@@ -146,7 +149,7 @@ class WeightedLogisticregression():
             second_largest_corr = np.array(second_largest_corr)
 
             # stopping condition: if all correlations are smaller than the threshold we break
-            if np.max(second_largest_corr) < WeightedLogisticregression.CORR_THR:
+            if np.max(second_largest_corr) < self.corr_thr:
                 break
 
             # if we got here, it means we have atleast two highly correlated features
