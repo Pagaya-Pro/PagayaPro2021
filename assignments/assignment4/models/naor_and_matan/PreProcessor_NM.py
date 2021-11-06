@@ -99,7 +99,7 @@ class PreProcessor_NM(TransformerMixin):
                 max_index = i
                 break
 
-        return set([tupple for tupple in correlation_sorted.index[0:i]])
+        return set([tupple for tupple in correlation_sorted.index[0:max_index]])
 
     def target_encode_occupation(self,occupation):
         return self.target_encode_dict[occupation]
