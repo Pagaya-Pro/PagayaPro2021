@@ -1,4 +1,3 @@
-from typing import List
 import pandas as pd
 import math
 
@@ -83,10 +82,8 @@ def s3_glob(s3_path, pattern):
 
 def parquet_to_dataframe(
         path: str,
-        columns: List[str] = None,
         frac: float = 1.0,
         files_pattern: str = "*.parquet",
-        **read_parquet_kwargs,
 ) -> pd.DataFrame:
     """
     reads parquet files into dataframe efficiently.
@@ -96,11 +93,8 @@ def parquet_to_dataframe(
 
     Args:
         path: parquet file or directory containing parquet files
-        columns : Optional, If not None, only these columns will be
-                  read from the file.
         frac: the fraction of files to read in case path is a directory of parquets
         files_pattern: a pattern of files to read from the directory, in case path is a directory of parquets
-        **read_parquet_kwargs: see `pyarrow.parquet.read_table`
     """
     assert 0 < frac <= 1
     assert not files_pattern or "**" not in files_pattern, "multiple levels are not supported"
