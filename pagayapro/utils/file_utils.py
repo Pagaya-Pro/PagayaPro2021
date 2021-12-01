@@ -1,6 +1,8 @@
 from typing import List
 import pandas as pd
 import math
+
+import s3fs
 from joblib import delayed
 from joblib import Parallel
 from tqdm import tqdm
