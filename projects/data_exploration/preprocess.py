@@ -15,7 +15,6 @@ def preprocess_data(X,y=None, na_threshold = 0.6):
                )
         .dropna(subset=["int_rate",'label'])
         .select_dtypes(include="number")
-        .dropna(axis=1, how="all", thresh=int(na_threshold * df.shape[0]))
     )
     if y is None:
         return preprocessed_df
