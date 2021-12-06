@@ -10,6 +10,7 @@ def preprocess_data(X,y=None, na_threshold = 0.6):
     preprocessed_df = (
         df
         .assign(loan_amnt = pd.to_numeric(df.loan_amnt, errors="coerce"),
+                annual_income = pd.to_numeric(df.annual_income, errors="coerce"),
                 eoddate = pd.to_datetime(df.eoddate, errors="coerce")
                )
         .dropna(subset=["int_rate",'label'])
