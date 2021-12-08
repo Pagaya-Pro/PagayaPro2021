@@ -17,30 +17,26 @@ warnings.filterwarnings('ignore')
 # ======================
 
 
-def annual_to_monthly_int_rate(annual_int_rate, const_int_rate=0):
-    if const_int_rate:
-        return np.power((const_int_rate + 1), 1 / 12) - 1
-    else:
-        return np.power((annual_int_rate + 1), 1 / 12) - 1
+def annual_to_monthly_int_rate(annual_int_rate):
+    return np.power((annual_int_rate + 1), 1 / 12) - 1
 
 
-def calc_monthly_pmt(df, const_int_rate=0):
+def calc_monthly_pmt(df):
     """
 
 
     :param df:
-    :param const_int_rate:
     :return:
     """
     monthly_pmt = np.round(
-        df.swifter.apply(lambda row: npf.pmt(annual_to_monthly_int_rate(row.int_rate * 0.01, const_int_rate),
+        df.swifter.apply(lambda row: npf.pmt(annual_to_monthly_int_rate(row.int_rate * 0.01),
                                              row.term,
                                              -row.loan_amnt), axis=1))
     df.loc[:, 'monthly_pmt'] = monthly_pmt
     return df
 
 
-def calc_payments(df, const_int_rate):
+def calc_payments(df):
     """
     Recieves df of loans and generate initial cashflow
 
@@ -54,7 +50,7 @@ def calc_payments(df, const_int_rate):
 
     # calculate interest_paid
     ip = df.swifter.apply(lambda row: pd.Series(
-        npf.ipmt(rate=annual_to_monthly_int_rate(row.int_rate * 0.01, const_int_rate),
+        npf.ipmt(rate=annual_to_monthly_int_rate(row.int_rate * 0.01),
                  per=range(1, int(row.term) + 1),
                  nper=int(row.term),
                  pv=-int(row.loan_amnt))), axis=1)
@@ -62,7 +58,7 @@ def calc_payments(df, const_int_rate):
 
     # calculate principal_paid
     pp = df.swifter.apply(lambda row: pd.Series(
-        npf.ppmt(rate=annual_to_monthly_int_rate(row.int_rate * 0.01, const_int_rate),
+        npf.ppmt(rate=annual_to_monthly_int_rate(row.int_rate * 0.01),
                  per=range(1, int(row.term) + 1),
                  nper=int(row.term),
                  pv=-int(row.loan_amnt))), axis=1)
@@ -170,11 +166,14 @@ def generate_cashflows(df, const_int_rate=0):
     :param df:
     :return:
     """
+    if const_int_rate:
+        df['orig_int_rate'] = df.int_rate
+        df.loc[:, 'int_rate'] = const_int_rate
     return edit_prepaid_loans_payments(
                 edit_charged_off_loans_payments(
                     add_actual_pmt_columns(
                         calc_payments(
-                            calc_monthly_pmt(df, const_int_rate), const_int_rate))))
+                            calc_monthly_pmt(df)))))
 
 
 def calc_irr(cashflows, info_date=None):
