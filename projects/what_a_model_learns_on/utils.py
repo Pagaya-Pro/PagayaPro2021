@@ -169,6 +169,7 @@ def generate_cashflows(df, const_int_rate=0):
     :param df:
     :return:
     """
+    df = df.copy()
     if const_int_rate:
         df['orig_int_rate'] = df.int_rate
         df.loc[:, 'int_rate'] = const_int_rate
@@ -185,8 +186,10 @@ def calc_irr(cashflows, info_date=None):
     :param cashflows:
     :return:
     """
+    cashflows = cashflows.copy()
+
     if info_date:
-        cashflows = set_information_date(cashflows.copy(), info_date[0], info_date[1])
+        cashflows = set_information_date(cashflows, info_date[0], info_date[1])
     else:
         cashflows = edit_prepaid_loans_payments(cashflows)
 
