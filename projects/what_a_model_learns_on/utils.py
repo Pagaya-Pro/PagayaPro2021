@@ -172,11 +172,10 @@ def generate_cashflows(df, const_int_rate=0):
     if const_int_rate:
         df['orig_int_rate'] = df.int_rate
         df.loc[:, 'int_rate'] = const_int_rate
-    return edit_prepaid_loans_payments(
-                edit_charged_off_loans_payments(
-                    add_actual_pmt_columns(
-                        calc_payments(
-                            calc_monthly_pmt(df)))))
+    return edit_charged_off_loans_payments(
+                add_actual_pmt_columns(
+                    calc_payments(
+                        calc_monthly_pmt(df))))
 
 
 def calc_irr(cashflows, info_date=None):
@@ -188,6 +187,8 @@ def calc_irr(cashflows, info_date=None):
     """
     if info_date:
         cashflows = set_information_date(cashflows.copy(), info_date[0], info_date[1])
+    else:
+        cashflows = edit_prepaid_loans_payments(cashflows)
 
     cashflows_payments = cashflows.filter(like='actual_pmt')
     cashflows_payments.insert(0, 'loan_amnt', -cashflows.loan_amnt)
