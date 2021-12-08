@@ -14,6 +14,7 @@ def calc_should(feature, y, regular=0):
     assert (np.sort(feature.unique()) == [0, 1]).all(), "feature should only have 0s and 1s"
     assert len(feature) == len(y), "The dataframe and the label vector are not the same length"
 
+
     zeros = y[feature == 0]
     ones = y[feature == 1]
 
