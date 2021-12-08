@@ -134,13 +134,18 @@ def calc_months_diff(date_series, year, month):
     return 12 * (year - years) + (month - months)
 
 
-def calc_prepaid_mob(orig_prepaid_mob, info_mob, term):
+def calc_prepaid_mob(orig_prepaid_mob, info_mob, term, co_mob):
+    if not np.isnan(co_mob):
+        if co_mob < info_mob:
+            return orig_prepaid_mob
+
     if np.isnan(orig_prepaid_mob):
         if info_mob < term:
             return info_mob
     else:
         if info_mob < orig_prepaid_mob:
             return info_mob
+
     return orig_prepaid_mob
 
 
@@ -148,7 +153,7 @@ def set_information_date(df, info_year, info_month):
     info_date_mobs = calc_months_diff(df.issue_date, info_year, info_month)
     df['info_date_mob'] = info_date_mobs
     assert (df['info_date_mob'] > 0).all()
-    prepaid_mobs = pd.concat([df.prepaid_mob, df.info_date_mob, df.term], axis=1).swifter.apply(lambda x: calc_prepaid_mob(x.prepaid_mob, x.info_date_mob, x.term), axis=1)
+    prepaid_mobs = pd.concat([df.prepaid_mob, df.info_date_mob, df.term], axis=1).swifter.apply(lambda x: calc_prepaid_mob(x.prepaid_mob, x.info_date_mob, x.term, x.co_mob), axis=1)
     df.drop(columns=['info_date_mob'], inplace=True)
     df['prepaid_mob'] = prepaid_mobs
     return edit_prepaid_loans_payments(df)
