@@ -28,6 +28,7 @@ def annual_to_monthly_int_rate(annual_int_rate):
     return annual_int_rate / 12
 
 
+
 def calc_monthly_pmt(df):
     """
 
