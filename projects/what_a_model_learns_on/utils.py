@@ -19,7 +19,13 @@ warnings.filterwarnings('ignore')
 
 
 def annual_to_monthly_int_rate(annual_int_rate):
-    return np.power((annual_int_rate + 1), 1 / 12) - 1
+    """
+    Returns the monthly interest rate given the APR (Annual Percentage Rate), which is the actual metric an institution
+    must disclose when discussing a loan.
+    :param annual_int_rate: a float of range [0,1].
+    :return: monthly int_rate: annual_int_rate / 12
+    """
+    return annual_int_rate / 12
 
 
 def calc_monthly_pmt(df):
