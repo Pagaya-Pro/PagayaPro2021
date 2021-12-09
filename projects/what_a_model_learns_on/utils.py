@@ -107,8 +107,9 @@ def edit_charged_off_loans_payments(df):
     term = int(df.term.max())
 
     df.co_mob = df.co_mob.fillna(-1)
-    df = df.swifter.apply(lambda x: np.hstack((x.loc[:f'actual_pmt{int(x.co_mob)}'][:-1],
-                                               np.zeros(term + 1 - int(x.co_mob)))) if x.co_mob != -1 else x,
+    df = df.swifter.apply(lambda x: pd.Series(np.hstack((x.loc[:f'actual_pmt{int(x.co_mob)}'][:-1],
+                                               np.zeros(term + 1 - int(x.co_mob)))),
+                                              index=x.index) if x.co_mob != -1 else x,
                           axis=1)
     df.loc[df.co_mob == -1, 'co_mob'] = np.nan
     return df
