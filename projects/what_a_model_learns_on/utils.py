@@ -8,6 +8,7 @@ from file_utils import parquet_to_dataframe
 import numpy_financial as npf
 import swifter
 from sklearn.model_selection import train_test_split
+import xgboost as xgb
 
 
 warnings.filterwarnings('ignore')
