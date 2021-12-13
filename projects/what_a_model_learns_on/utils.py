@@ -230,3 +230,64 @@ def should(feature, y, regular=0):
         scores.append(max(gain / root_similarity, 0))
 
     return np.sqrt(scores[0] * scores[1])
+
+
+def can_simplicity(data, feature, verbose=False, plot_trees=False, max_max_depth=6, seed=42, test_size=0.33):
+    can_list = []
+    products = []
+    X_train, X_test, y_train, y_test = train_test_split(
+        data.drop(columns=[feature]),
+        data[feature],
+        test_size=test_size,
+        random_state=seed)
+
+    for dep in range(1, max_max_depth + 1):
+
+        model = xgb.XGBRegressor(
+            eval_metric='logloss',
+            objective="binary:logistic",
+            random_state=seed,
+            n_estimators=1,
+            max_depth=dep)
+
+        model.fit(X_train, y_train)
+        probs = model.predict(X_test)
+        preds = np.zeros(len(probs))
+        preds[probs > 0.5] = 1
+
+        acc = bas(y_test, preds)
+        simple = 1 / np.sqrt(dep)
+        score = 2 * abs(acc - 0.5)
+        product = score * simple
+        can_list.append(score)
+        products.append(product)
+
+        if plot_trees:
+            fig, ax = plt.subplots(figsize=(8 * np.sqrt(dep), 8 * np.sqrt(dep)))
+            xgb.plot_tree(model, ax=ax)
+            plt.title(f'Depth: {dep}')
+            plt.show();
+
+        if verbose:
+            print(f'Depth: {dep}')
+            print(f'\tAccuracy: {acc}')
+            print(f'\tNormed accuracy: {score}')
+            print(f'\tSimplicity: {simple}')
+            print(f'\tScore*Simplicity: {product}')
+
+    max_prod_id = np.argmax(products)
+    max_prod = products[max_prod_id]
+    max_score_id = np.argmax(can_list)
+    max_score = can_list[max_score_id]
+
+    if verbose:
+        print(
+            f'Best can*simplicity score: {max_prod:.4f} for depth: {max_prod_id + 1} and can score {can_list[max_prod_id]:.4f}')
+        print(f'Best can score: {max_score:.4f} for depth: {max_score_id + 1}')
+
+    res = {
+        'accuracy': can_list[max_prod_id],
+        'depth': max_prod_id,
+        'score': max_prod
+    }
+    return res
