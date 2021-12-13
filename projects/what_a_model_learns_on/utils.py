@@ -217,12 +217,27 @@ def calc_irr(cashflows, info_date=None):
                                                                            axis=1).fillna(-100)
 
 
-def should(feature, y, regular=0):
+def should(y, flag, regular=0):
+    """
+    This function calculates the "should" score we came up with. Given a flag feature and the target vector,
+    the "should" score intends to measure how useful it is to use the flag as a feature when training a
+    model to predict the target.
+    :param y:
+        The target vector.
+    :param flag:
+        A column the same length as y with 0s and 1s.
+    :param regular:
+        This is a regularization parameter.
+        It should have the same value as the regularization parameter of the actual model that will be used to predict y.
+        The default value is 0.
+    :return:
+        "should" score
+    """
     scores = []
 
     for initial in [np.max(y) + 1, np.min(y) - 1]:
-        zeros = y[feature == 0]
-        ones = y[feature == 1]
+        zeros = y[flag == 0]
+        ones = y[flag == 1]
 
         zeros_similarity = calc_similarity(zeros, regular, initial)
         ones_similarity = calc_similarity(ones, regular, initial)
@@ -235,12 +250,38 @@ def should(feature, y, regular=0):
     return np.sqrt(scores[0] * scores[1])
 
 
-def can_simplicity(data, feature, verbose=False, plot_trees=False, max_max_depth=6, seed=42, test_size=0.33):
+def can_simplicity(data, flag, verbose=False, plot_trees=False, max_max_depth=6, seed=42, test_size=0.33):
+    """
+    This function calculates the "can*simplicity" score we came up with. Given a flag feature and the training dataset,
+    the "can*simplicity" score intends to measure how easy it is to predict the flag from the data.
+    The function trains a single XGBoost tree for each depth from 1 to max_max_depth, train to predict to flag
+    from the data. For each model, it calculates an accuracy score and normalizes it by the tree's depth.
+    The final score is the max score obtained after normalizing by depth.
+    :param data:
+        The training data.
+    :param flag:
+        A column the same length as the data with 0s and 1s.
+    :param verbose:
+        If True, the function prints out the results for each model it trains.
+    :param plot_trees:
+        If True, the functions prints out the decision tree for each model.
+    :param max_max_depth:
+        The upper bound for the max_depth of the models the function builds.
+    :param seed:
+        Random state seed.
+    :param test_size:
+        The test size when splitting the data.
+    :return:
+        The function returns a dict with the following keys:
+            Score: The score of the winning model.
+            Accuracy: The accuracy of the winning model.
+            Depth: The depth of the winning model.
+    """
     can_list = []
     products = []
     X_train, X_test, y_train, y_test = train_test_split(
         data,
-        feature,
+        flag,
         test_size=test_size,
         random_state=seed)
 
