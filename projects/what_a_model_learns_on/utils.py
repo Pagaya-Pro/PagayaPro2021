@@ -239,8 +239,8 @@ def can_simplicity(data, feature, verbose=False, plot_trees=False, max_max_depth
     can_list = []
     products = []
     X_train, X_test, y_train, y_test = train_test_split(
-        data.drop(columns=[feature]),
-        data[feature],
+        data,
+        feature,
         test_size=test_size,
         random_state=seed)
 
@@ -289,8 +289,8 @@ def can_simplicity(data, feature, verbose=False, plot_trees=False, max_max_depth
         print(f'Best can score: {max_score:.4f} for depth: {max_score_id + 1}')
 
     res = {
+        'score': max_prod,
         'accuracy': can_list[max_prod_id],
-        'depth': max_prod_id,
-        'score': max_prod
+        'depth': max_prod_id+1
     }
     return res
