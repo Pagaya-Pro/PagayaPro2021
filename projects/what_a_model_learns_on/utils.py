@@ -9,6 +9,7 @@ import numpy_financial as npf
 import swifter
 from sklearn.model_selection import train_test_split
 import xgboost as xgb
+from sklearn.metrics import balanced_accuracy_score as bas
 
 
 warnings.filterwarnings('ignore')
