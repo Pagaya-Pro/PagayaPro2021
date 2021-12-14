@@ -221,7 +221,10 @@ def xgb_shap_should(X, y, feature, seed=42):
 
     X_temp = X.copy()
     X_temp['feature'] = feature
-    model = xgb.XGBRegressor(random_state=seed)
+    model = xgb.XGBRegressor(
+        n_estimators=1,
+        max_depth=6,
+        random_state=seed)
     model.fit(X_temp, y)
 
     return noam_should(X_temp, model, 'feature')
