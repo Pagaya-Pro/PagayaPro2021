@@ -10,6 +10,7 @@ import swifter
 from sklearn.model_selection import train_test_split
 import xgboost as xgb
 from sklearn.metrics import balanced_accuracy_score as bas
+import shap
 
 
 warnings.filterwarnings('ignore')
@@ -215,6 +216,25 @@ def calc_irr(cashflows, info_date=None):
 
     return cashflows_payments.swifter.apply(npf.irr, axis=1).swifter.apply(lambda irr: ((irr + 1) ** 12 - 1) * 100,
                                                                            axis=1).fillna(-100)
+
+
+def noam_should(X, model, feat_name):
+    """
+    This function calculates the "should" score of feature given a model. Given a model, a X dataframe and the feature name,
+    the "should" score intends to measure how impactful the feature is on the model's predictions using SHAP values.
+    :param X:
+        The X dataframe used to train the model
+    :param model:
+        A model object we wish to calculate the should for.
+    :param feat_name:
+        A string indicating the feature name, as named in the X dataframe.
+    :return:
+        "should" score
+    """
+    explainer = shap.Explainer(model)
+    shap_values = explainer(X)
+    df_shap_values = pd.DataFrame(shap_values.values, columns=X.columns, index=X.index)
+    return (df_shap_values[feat_name].abs() / df_shap_values.abs().sum(axis=1)).mean()
 
 
 def should(y, flag, regular=0):
