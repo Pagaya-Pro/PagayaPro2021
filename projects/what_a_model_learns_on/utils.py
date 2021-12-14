@@ -246,7 +246,7 @@ def noam_should(X, model, feat_name):
     return (df_shap_values[feat_name].abs() / df_shap_values.abs().sum(axis=1)).mean()
 
 
-def should(y, flag, regular=0):
+def should(X, y, flag, regular=0):
     """
     This function calculates the "should" score we came up with. Given a flag feature and the target vector,
     the "should" score intends to measure how useful it is to use the flag as a feature when training a
