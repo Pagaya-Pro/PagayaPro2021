@@ -217,6 +217,14 @@ def calc_irr(cashflows, info_date=None):
     return cashflows_payments.swifter.apply(npf.irr, axis=1).swifter.apply(lambda irr: ((irr + 1) ** 12 - 1) * 100,
                                                                            axis=1).fillna(-100)
 
+def xgb_shap_should(X, y, feature, seed=42):
+
+    X_temp = X.copy()
+    X_temp['feature'] = feature
+    model = xgb.XGBRegressor(random_state=seed)
+    model.fit(X_temp, y)
+
+    return noam_should(X_temp, model, 'feature')
 
 def noam_should(X, model, feat_name):
     """
@@ -231,6 +239,7 @@ def noam_should(X, model, feat_name):
     :return:
         "should" score
     """
+
     explainer = shap.Explainer(model)
     shap_values = explainer(X)
     df_shap_values = pd.DataFrame(shap_values.values, columns=X.columns, index=X.index)
