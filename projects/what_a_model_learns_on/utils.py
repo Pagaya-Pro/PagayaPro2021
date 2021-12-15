@@ -370,7 +370,7 @@ def can_simplicity(X, y, flag, verbose=False, plot_trees=False, max_max_depth=6,
 
 def should_can_simple(X, y, flag, regular=0, max_max_depth=6, seed=42, test_size=0.33):
     s = should(X, y, flag, regular)
-    c = can_simplicity(X, y, flag, max_max_depth=max_max_depth, seed=seed, test_size=test_size)
+    c = can_simplicity(X, y, flag, max_max_depth=max_max_depth, seed=seed, test_size=test_size)['score']
     return s*c
 
 def double_r(X, y, flag, seed=42):
