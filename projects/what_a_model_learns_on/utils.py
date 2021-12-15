@@ -393,7 +393,8 @@ def double_r(X, y, flag, seed=42):
     :param seed: Random seed (default=42)
     :return: Double R score
     """
-    assert len(X) > 50000, "Sample should be larger than 50,000"
+    if len(X) > 50000:
+        print("Sample should be larger than 50,000")
     zeros = X[flag == 0].index
     ones = X[flag == 1].index
     if len(zeros) != len(ones):
@@ -406,7 +407,8 @@ def double_r(X, y, flag, seed=42):
         y = y[idx_to_keep_bool]
         flag = flag[idx_to_keep_bool]
 
-    assert len(X) > 50000, "Sample is too imbalanced. Either increase sample or reduce imbalance in flag."
+    if len(X) > 50000:
+        print("Sample is too imbalanced. Either increase sample or reduce imbalance in flag.")
 
     model = xgb.XGBRegressor(random_state=seed)
     model.fit(X, y)
