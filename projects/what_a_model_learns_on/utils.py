@@ -174,11 +174,37 @@ def set_information_date(df, info_year, info_month):
 def calc_similarity(x, regular, initial):
     return ((x - initial).sum()) ** 2 / (len(x) + regular)
 
+def double_r_leaf(leaf_flags, len_data):
+    return (len(leaf_flags) * abs(leaf_flags.mean()-0.5)) / len_data
+
+def double_r_tree(leaves, flag):
+    leaves_score = []
+    for leaf in range(1, max(leaves) + 1):
+        indx = (np.array(leaves) == leaf)
+        leaf_flags = flag[indx]
+        if len(leaf_flags) > 0:
+            leaves_score.append(double_r_leaf(leaf_flags, len(flag)))
+    return np.array(leaves_score).sum()
+
+def double_r_model(leaves, X, flag):
+    """
+    :param loans_leaves:
+        list of lists--for every sample, for every tree, the leaf of the sample
+    :param X:
+        models' features
+    :return:
+    """
+    if len(leaves.shape) == 1:
+        leaves = leaves.reshape(-1,1)
+    trees_leaves = leaves.T
+    trees_score = []
+    for tree in trees_leaves:
+        trees_score.append(double_r_tree(tree, X, flag))
+    return np.mean(trees_score)
 
 # ======================
 # Main Functions
 # ======================
-
 
 def generate_cashflows(df, const_int_rate=0):
     """
@@ -217,38 +243,6 @@ def calc_irr(cashflows, info_date=None):
     return cashflows_payments.swifter.apply(npf.irr, axis=1).swifter.apply(lambda irr: ((irr + 1) ** 12 - 1) * 100,
                                                                            axis=1).fillna(-100)
 
-def xgb_shap_should(X, y, feature, seed=42):
-
-    X_temp = X.copy()
-    X_temp['feature'] = feature
-    model = xgb.XGBRegressor(
-        n_estimators=1,
-        max_depth=6,
-        random_state=seed)
-    model.fit(X_temp, y)
-
-    return noam_should(X_temp, model, 'feature')
-
-def noam_should(X, model, feat_name):
-    """
-    This function calculates the "should" score of feature given a model. Given a model, a X dataframe and the feature name,
-    the "should" score intends to measure how impactful the feature is on the model's predictions using SHAP values.
-    :param X:
-        The X dataframe used to train the model
-    :param model:
-        A model object we wish to calculate the should for.
-    :param feat_name:
-        A string indicating the feature name, as named in the X dataframe.
-    :return:
-        "should" score
-    """
-
-    explainer = shap.Explainer(model)
-    shap_values = explainer(X)
-    df_shap_values = pd.DataFrame(shap_values.values, columns=X.columns, index=X.index)
-    return (df_shap_values[feat_name].abs() / df_shap_values.abs().sum(axis=1)).mean()
-
-
 def should(X, y, flag, regular=0):
     """
     This function calculates the "should" score we came up with. Given a flag feature and the target vector,
@@ -282,15 +276,17 @@ def should(X, y, flag, regular=0):
     return np.sqrt(scores[0] * scores[1])
 
 
-def can_simplicity(data, flag, verbose=False, plot_trees=False, max_max_depth=6, seed=42, test_size=0.33):
+def can_simplicity(X, y, flag, verbose=False, plot_trees=False, max_max_depth=6, seed=42, test_size=0.33):
     """
     This function calculates the "can*simplicity" score we came up with. Given a flag feature and the training dataset,
     the "can*simplicity" score intends to measure how easy it is to predict the flag from the data.
     The function trains a single XGBoost tree for each depth from 1 to max_max_depth, train to predict to flag
     from the data. For each model, it calculates an accuracy score and normalizes it by the tree's depth.
     The final score is the max score obtained after normalizing by depth.
-    :param data:
+    :param X:
         The training data.
+    :param y:
+        The model's labels (not really necessary; used for standardization)
     :param flag:
         A column the same length as the data with 0s and 1s.
     :param verbose:
@@ -367,3 +363,22 @@ def can_simplicity(data, flag, verbose=False, plot_trees=False, max_max_depth=6,
         'depth': max_prod_id+1
     }
     return res
+
+def should_can_simple(X, y, flag, regular=0, max_max_depth=6, seed=42, test_size=0.33):
+    s = should(X, y, flag, regular)
+    c = can_simplicity(X, y, flag, max_max_depth, seed, test_size)
+    return s*c
+
+def double_r(X, y, flag, seed=42):
+    """
+    :param X: Model features
+    :param y: Model labels
+    :param flag: Flag to be tested
+    :param seed: Random seed (default=42)
+    :return: Double R score
+    """
+    model = xgb.XGBRegressor(random_state=seed)
+    model.fit(X, y)
+    leaves = model.apply(X)
+    return double_r_model(leaves, X, flag)
+
