@@ -370,7 +370,7 @@ def can_simplicity(X, y, flag, verbose=False, plot_trees=False, max_max_depth=6,
 
 def should_can_simple(X, y, flag, regular=0, max_max_depth=6, seed=42, test_size=0.33):
     s = should(X, y, flag, regular)
-    c = can_simplicity(X, y, flag, max_max_depth, seed, test_size)
+    c = can_simplicity(X, y, flag, int(max_max_depth), seed, test_size)
     return s*c
 
 def double_r(X, y, flag, seed=42):
@@ -381,6 +381,7 @@ def double_r(X, y, flag, seed=42):
     :param seed: Random seed (default=42)
     :return: Double R score
     """
+    #new_label_indices = random.sample(set(before_2018_sample_with_label[before_2018_sample_with_label['label'] == 1].index), 2500)
     model = xgb.XGBRegressor(random_state=seed)
     model.fit(X, y)
     leaves = model.apply(X)
