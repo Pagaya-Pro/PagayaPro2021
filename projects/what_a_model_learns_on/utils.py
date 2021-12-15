@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 import xgboost as xgb
 from sklearn.metrics import balanced_accuracy_score as bas
 import shap
+from scipy.stats import gmean
 
 
 warnings.filterwarnings('ignore')
@@ -171,9 +172,6 @@ def set_information_date(df, info_year, info_month):
     df['prepaid_mob'] = prepaid_mobs
     return edit_prepaid_loans_payments(df)
 
-def calc_similarity(x, regular, initial):
-    return ((x - initial).sum()) ** 2 / (len(x) + regular)
-
 def double_r_leaf(leaf_flags, len_data):
     return (len(leaf_flags) * abs(leaf_flags.mean()-0.5)) / len_data
 
@@ -201,6 +199,21 @@ def double_r_model(leaves, X, flag):
     for tree in trees_leaves:
         trees_score.append(double_r_tree(tree, flag))
     return np.mean(trees_score)
+
+def similarity(data, regular, initial):
+
+    return ((data - initial).sum()) ** 2 / (len(data) + regular)
+
+def gain(X, y, flag, initial=0, regular=0):
+
+    zeros = y[flag == 0]
+    ones = y[flag == 1]
+
+    zeros_similarity = similarity(zeros, regular, initial)
+    ones_similarity = similarity(ones, regular, initial)
+    root_similarity = similarity(y, regular, initial)
+
+    return zeros_similarity + ones_similarity - root_similarity
 
 # ======================
 # Main Functions
@@ -259,21 +272,12 @@ def should(X, y, flag, regular=0):
     :return:
         "should" score
     """
-    scores = []
+    normalize = []
 
-    for initial in [np.max(y) + 1, np.min(y) - 1]:
-        zeros = y[flag == 0]
-        ones = y[flag == 1]
+    for i in [np.min(y) - 1, np.max(y) + 1]:
+        normalize.append(similarity(y, regular, i))
 
-        zeros_similarity = calc_similarity(zeros, regular, initial)
-        ones_similarity = calc_similarity(ones, regular, initial)
-        root_similarity = calc_similarity(y, regular, initial)
-
-        gain = zeros_similarity + ones_similarity - root_similarity
-
-        scores.append(max(gain / root_similarity, 0))
-
-    return np.sqrt(scores[0] * scores[1])
+    return gain(X, y, flag) / gmean(normalize)
 
 
 def can_simplicity(X, y, flag, verbose=False, plot_trees=False, max_max_depth=6, seed=42, test_size=0.33):
