@@ -199,7 +199,7 @@ def double_r_model(leaves, X, flag):
     trees_leaves = leaves.T
     trees_score = []
     for tree in trees_leaves:
-        trees_score.append(double_r_tree(tree, X, flag))
+        trees_score.append(double_r_tree(tree, flag))
     return np.mean(trees_score)
 
 # ======================
