@@ -13,6 +13,7 @@ from sklearn.metrics import balanced_accuracy_score as bas
 import shap
 from scipy.stats import gmean
 import math
+import tqdm from tqdm
 
 
 warnings.filterwarnings('ignore')
@@ -197,7 +198,7 @@ def double_r_model(leaves, X, flag):
         leaves = leaves.reshape(-1,1)
     trees_leaves = leaves.T
     trees_score = []
-    for tree in trees_leaves:
+    for tree in tqdm(trees_leaves):
         trees_score.append(double_r_tree(tree, flag))
     return np.mean(trees_score)
 
