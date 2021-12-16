@@ -13,7 +13,7 @@ from sklearn.metrics import balanced_accuracy_score as bas
 import shap
 from scipy.stats import gmean
 import math
-import tqdm from tqdm
+from tqdm import tqdm
 
 
 warnings.filterwarnings('ignore')
