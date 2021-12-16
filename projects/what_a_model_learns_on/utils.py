@@ -385,7 +385,7 @@ def should_can_simple(X, y, flag, regular=0, max_max_depth=6, seed=42, test_size
     return s*c
 
 
-def double_r(X, y, flag, seed=42, n_estimators=20, max_depth=6):
+def double_r(X, y, flag, model=None, seed=42, n_estimators=20, max_depth=6):
     """
     :param X: Model features
     :param y: Model labels
@@ -393,28 +393,30 @@ def double_r(X, y, flag, seed=42, n_estimators=20, max_depth=6):
     :param seed: Random seed (default=42)
     :return: Double R score
     """
-    if len(X) < 50000:
-        print("Sample should be larger than 50,000")
-    zeros = X[flag == 0].index
-    ones = X[flag == 1].index
-    if len(zeros) != len(ones):
-        if len(zeros) < len(ones):
-            idx_to_keep = equalize(zeros, ones, seed)
-        else:
-            idx_to_keep = equalize(ones, zeros, seed)
-        idx_to_keep_bool = X.index.isin(idx_to_keep) == True
-        X = X[idx_to_keep_bool]
-        y = y[idx_to_keep_bool]
-        flag = flag[idx_to_keep_bool]
+    if not model:
+        if len(X) < 50000:
+            print("Sample should be larger than 50,000")
+        zeros = X[flag == 0].index
+        ones = X[flag == 1].index
+        if len(zeros) != len(ones):
+            if len(zeros) < len(ones):
+                idx_to_keep = equalize(zeros, ones, seed)
+            else:
+                idx_to_keep = equalize(ones, zeros, seed)
+            idx_to_keep_bool = X.index.isin(idx_to_keep) == True
+            X = X[idx_to_keep_bool]
+            y = y[idx_to_keep_bool]
+            flag = flag[idx_to_keep_bool]
 
-    if len(X) < 50000:
-        print("Sample is too imbalanced. Either increase sample or reduce imbalance in flag.")
+        if len(X) < 50000:
+            print("Sample is too imbalanced. Either increase sample or reduce imbalance in flag.")
 
-    model = xgb.XGBRegressor(
-        random_state=seed,
-        n_estimators=n_estimators,
-        max_depth=max_depth)
-    model.fit(X, y)
+        model = xgb.XGBRegressor(
+            random_state=seed,
+            n_estimators=n_estimators,
+            max_depth=max_depth)
+        model.fit(X, y)
+
     leaves = model.apply(X)
     return double_r_model(leaves, X, flag)
 
