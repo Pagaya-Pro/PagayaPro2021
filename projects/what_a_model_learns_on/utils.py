@@ -199,7 +199,7 @@ def double_r_model(leaves, X, flag):
     trees_score = []
     for tree in trees_leaves:
         trees_score.append(double_r_tree(tree, flag))
-    return np.max(trees_score)
+    return max(trees_score)
 
 
 def equalize(small_idx, large_idx, seed=42):
