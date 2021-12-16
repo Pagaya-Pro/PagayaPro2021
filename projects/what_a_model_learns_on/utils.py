@@ -385,7 +385,7 @@ def should_can_simple(X, y, flag, regular=0, max_max_depth=6, seed=42, test_size
     return s*c
 
 
-def double_r(X, y, flag, seed=42):
+def double_r(X, y, flag, seed=42, n_estimators=100, max_depth=6):
     """
     :param X: Model features
     :param y: Model labels
@@ -410,7 +410,10 @@ def double_r(X, y, flag, seed=42):
     if len(X) > 50000:
         print("Sample is too imbalanced. Either increase sample or reduce imbalance in flag.")
 
-    model = xgb.XGBRegressor(random_state=seed)
+    model = xgb.XGBRegressor(
+        random_state=seed,
+        n_estimators=n_estimators,
+        max_depth=max_depth)
     model.fit(X, y)
     leaves = model.apply(X)
     return double_r_model(leaves, X, flag)
