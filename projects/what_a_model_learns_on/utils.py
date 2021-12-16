@@ -199,7 +199,7 @@ def double_r_model(leaves, X, flag):
     trees_score = []
     for tree in trees_leaves:
         trees_score.append(double_r_tree(tree, flag))
-    return trees_score
+    return np.mean(trees_score)
 
 
 def equalize(small_idx, large_idx, seed=42):
@@ -385,7 +385,7 @@ def should_can_simple(X, y, flag, regular=0, max_max_depth=6, seed=42, test_size
     return s*c
 
 
-def double_r(X, y, flag, seed=42, n_estimators=100, max_depth=6):
+def double_r(X, y, flag, seed=42, n_estimators=20, max_depth=6):
     """
     :param X: Model features
     :param y: Model labels
