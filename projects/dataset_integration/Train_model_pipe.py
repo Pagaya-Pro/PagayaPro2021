@@ -23,29 +23,44 @@ import pickle
 class Train_model_pipeline():
 
     def __init__(self, feature_path, target_path, cashflows=None, cashflows_path=None, model_path=None,
-                 stratify_values=['co_mob', 'prepaid_mob'], sample_size=1):
+                 stratify_values=['co_mob', 'prepaid_mob'], sample_size=1, stratify=True):
 
         self.model_path = model_path
         self.cashflows = None
+        self.predictions = None
+        self.models = []
 
-        feature_data = parquet_to_dataframe(feature_path)
-        target_data = parquet_to_dataframe(target_path)
-        feature_data = self.add_features_from_target(feature_data, target_data)
+        if (type(feature_path) == type('')):
+            try:
+                target_data = parquet_to_dataframe(target_path)
+            except:
+                print('target data not split to folder - reading from parquet')
+                target_data = pd.read_parquet(target_path)
+
+            try:
+                feature_data = parquet_to_dataframe(feature_path)
+            except:
+                print('feature data not split to folder - reading from parquet')
+                feature_data = pd.read_parquet(feature_path)
+        else:
+            target_data = target_path
+            feature_data = feature_path
 
         print('Creating cashflows')
         if (cashflows is None):
             cashflows = utils.survivals_to_cashflows(target_data)
             cashflows.set_index(target_data.index, inplace=True)
-            target_data['yearly_irr'] = self.calc_yearly_irr(cashflows)
+            cashflows['yearly_irr'] = self.calc_yearly_irr(cashflows)
+            target_data['yearly_irr'] = cashflows['yearly_irr']
+            print('Splitting data')
+            if (cashflows_path is not None):
+                self.cashflows_path = cashflows_path
+                cashflows.to_parquet(cashflows_path)
+            else:
+                self.cashflows = cashflows
         else:
             cashflows.set_index(target_data.index, inplace=True)
             target_data['yearly_irr'] = cashflows['yearly_irr']
-
-        print('Splitting data')
-        if (cashflows_path is not None):
-            self.cashflows_path = cashflows_path
-            cashflows.to_parquet(cashflows_path)
-        else:
             self.cashflows = cashflows
 
         series_to_stratify = ([target_data[stratify_values[i]].astype(str) for i in range(len(stratify_values))])
@@ -56,13 +71,14 @@ class Train_model_pipeline():
 
         target_data['stratify'] = col_start
 
-        if sample_size < 1:
+        if stratify and sample_size < 1:
             _, feature_data, _, target_data = self.sample_data(sample_size, feature_data, target_data)
 
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(feature_data, target_data['yearly_irr'],
-                                                                                test_size=0.33, random_state=42,
+                                                                                test_size=0.4, random_state=42,
                                                                                 stratify=target_data['stratify'].fillna(
                                                                                     -1))
+        print('done Splitting data')
 
     def sample_data(self, sample_size, feature_data, target_data):
         return train_test_split(feature_data, target_data, test_size=sample_size,
@@ -72,11 +88,13 @@ class Train_model_pipeline():
         self.X_train[col] = func(zipcodes.loc[X_train.sequence_num.values])
         self.X_test[col] = func(zipcodes.loc[X_test.sequence_num.values])
 
-    def train_model(self):
+    def train_model(self, columns=[], num_boosts=10, save_model=False):
+        if len(columns) == 0:
+            columns = self.X_train.select_dtypes(include=np.number).columns
 
         print('Creating DMatrix')
-        self.dtrain = xgb.DMatrix(self.X_train.drop(columns=['sequence_num']), self.y_train, nthread=-1)
-        self.dtest = xgb.DMatrix(self.X_test.drop(columns=['sequence_num']), self.y_test, nthread=-1)
+        dtrain = xgb.DMatrix((self.X_train[columns]), self.y_train, nthread=-1)
+        dtest = xgb.DMatrix((self.X_test[columns]), self.y_test, nthread=-1)
         evals_result = dict()
         params = {
             "booster": "gbtree",
@@ -93,35 +111,28 @@ class Train_model_pipeline():
             "eval_metric": "rmse",
         }
 
-        num_boost_round = 10
+        num_boost_round = num_boosts
 
         print('Training model')
-        self.model = xgb.train(params, self.dtrain, evals=[(self.dtest, 'eval'), (self.dtrain, 'train')],
-                               evals_result=evals_result,
-                               num_boost_round=num_boost_round)
+        model = xgb.train(params, dtrain, evals=[(dtest, 'eval'), (dtrain, 'train')], evals_result=evals_result,
+                          num_boost_round=num_boost_round)
+        self.dtrain = dtrain
+        self.dtest = dtest
+        self.model = model
+        self.evals_result = evals_result
+        self.predictions = model.predict(dtest)
 
-        if (self.model_path is not None):
-            with open(self.model_path, 'wb') as fp:
-                pickle.dump(self.model, fp)
+        self.models.append((model, columns)) if save_model else print('Model not save for later comparison')
 
     def predict(self, X_test=None):
-        if X_test is not None:
-            dtest = xgb.DMatrix(X_test, nthread=-1)
+
+        dtest = None
+        if type(X_test) == type(None):
+            return (self.predictions)
         else:
-            dtest = self.dtest
+            dtest = xgb.DMatrix(X_test, nthread=-1)
 
         return self.model.predict(dtest)
-
-    def add_features_from_target(self, feature_data, target_data):
-        try:
-            feature_data['int_rate'] = target_data.int_rate
-            feature_data['monthly_pmt'] = target_data.monthly_pmt
-            feature_data['credit_score'] = target_data.credit_score
-            feature_data['sequence_num'] = target_data.sequence_num
-        except:
-            print('Columns missing from train features.')
-
-        return feature_data
 
     def calc_yearly_irr(self, cashflows):
         irrs = cashflows.swifter.apply(lambda x: npf.irr(x[x.notna()]), axis=1)
@@ -150,15 +161,17 @@ class Train_model_pipeline():
         volumes, irrs = [], []
         total_vol = data[loan_amount_col].sum()
         thresholds = np.linspace(0.05 * total_vol, total_vol, 20)
+
         for thresh in thresholds:
             portfolio_indices = data[data['accumulated_volume'] < thresh].index
             portfolio_irr = self.get_portfolio_irr(cashflows, portfolio_indices, loan_amount_col)
 
             volumes.append(thresh)
             irrs.append(portfolio_irr)
+
         return volumes, irrs
 
-    def draw_curves(self):
+    def draw_curves(self, plot=True, regplot=True):
 
         if (self.cashflows is None):
             try:
@@ -169,27 +182,40 @@ class Train_model_pipeline():
             cashflows = self.cashflows
 
         plt.figure(figsize=(20, 8))
-        # Copy dataset to avoid leakage of predicted columns to train/ test sets
-        X_test_model = self.X_test.copy()
+
         # Take model predictions
-        X_test_model['predicted_model_cvs'] = self.model.predict(self.dtest)
-        X_test_model.sort_values(by='predicted_model_cvs', ascending=False, inplace=True)
+        self.X_test['predicted_model_cvs'] = self.predictions
+        self.X_test.sort_values(by='predicted_model_cvs', ascending=False, inplace=True)
         # Calculate accumulated by rank
-        X_test_model['accumulated_volume'] = X_test_model.loan_amnt.cumsum()
+        self.X_test['accumulated_volume'] = self.X_test.loan_amnt.cumsum()
 
         # Get volumes and IRR values
-        volumes, irrs = self.calc_volume_irr(X_test_model, cashflows, 'loan_amnt')
-        label = f'return on 50% volume - {str(np.round(irrs[9], 3))}'
-        sns.regplot(x=volumes / np.max(volumes), y=irrs, order=3, ci=None, label=label,
-                    scatter_kws={"color": 'r'},
-                    line_kws={"color": 'b'})
+        volumes, irrs = self.calc_volume_irr(self.X_test, cashflows, 'loan_amnt')
 
-        plt.title('Volume vs IRR tradeoff')
-        plt.legend(**{'title': 'Model'})
-        plt.xlabel('Volume', size=12)
-        plt.ylabel('IRR', size=12)
-        plt.legend()
-        plt.show()
+        # Change indeices back to original location
+        self.X_test = self.X_test.loc[self.y_test.index]
 
-        self.volums = volumes
-        self.irrs = irrs
+        # Change indeices back to original location
+        self.X_test.drop(columns=['predicted_model_cvs', 'accumulated_volume'], inplace=True)
+
+        self.volumes, self.irrs = np.array(volumes), np.array(irrs)
+        if plot:
+
+            label = f'return on 50% volume - {str(np.round(irrs[9], 3))}'
+            if regplot:
+                sns.regplot(x=volumes / np.max(volumes), y=irrs, order=3, ci=None, label=label,
+                            scatter_kws={"color": 'r'},
+                            line_kws={"color": 'b'})
+            else:
+                plt.plot(volumes / np.max(volumes), irrs, label=label)
+
+            plt.title('Volume vs IRR tradeoff')
+            plt.legend(**{'title': 'Model'})
+            plt.xlabel('Volume', size=12)
+            plt.ylabel('IRR', size=12)
+            plt.legend()
+            plt.show()
+
+
+
+
