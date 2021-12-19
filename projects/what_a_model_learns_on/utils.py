@@ -14,6 +14,7 @@ import shap
 from scipy.stats import gmean
 import math
 from tqdm import tqdm
+from sklearn.metrics import accuracy_score
 
 
 warnings.filterwarnings('ignore')
@@ -292,7 +293,7 @@ def should(X, y, flag, regular=0):
     return gain(X, y, flag) / gmean(normalize)
 
 
-def can_simplicity(X, y, flag, verbose=False, plot_trees=False, max_max_depth=6, seed=42, test_size=0.33):
+def can_simplicity(X, y, flag, balanced=True, verbose=False, plot_trees=False, max_max_depth=6, seed=42, test_size=0.33):
     """
     This function calculates the "can*simplicity" score we came up with. Given a flag feature and the training dataset,
     the "can*simplicity" score intends to measure how easy it is to predict the flag from the data.
@@ -344,6 +345,8 @@ def can_simplicity(X, y, flag, verbose=False, plot_trees=False, max_max_depth=6,
         preds[probs > 0.5] = 1
 
         acc = bas(y_test, preds)
+        if not balanced:
+            acc = accuracy_score(y_test, preds)
         simple = 1 / np.sqrt(dep)
         score = 2 * abs(acc - 0.5)
         product = score * simple
