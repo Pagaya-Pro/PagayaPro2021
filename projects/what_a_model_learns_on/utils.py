@@ -389,7 +389,7 @@ def should_can_simple(X, y, flag, regular=0, max_max_depth=6, seed=42, test_size
     c = can_simplicity(X, y, flag, max_max_depth=max_max_depth, seed=seed, test_size=test_size)['score']
     return s*c
 
-def compare_preds(X, y, flag, model=None):
+def compare_preds(X, y, flag, model=None, alpha=0.01):
 
     if not model:
         model = xgb.XGBRegressor(
@@ -406,8 +406,8 @@ def compare_preds(X, y, flag, model=None):
     res = dict()
 
     res['diff'] = np.mean(preds_1) - np.mean(preds_0)
-    res['ks'] = ks_2samp(preds_0, preds_1)['pvalue']
-    res['ttest'] = ttest_ind(preds_0, preds_1)['pvalue']
+    res['ks'] = (ks_2samp(preds_0, preds_1)['pvalue'] < alpha)*1
+    res['ttest'] = (ttest_ind(preds_0, preds_1)['pvalue'] < alpha)*1
 
     return res
 
