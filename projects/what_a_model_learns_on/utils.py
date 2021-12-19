@@ -15,6 +15,7 @@ from scipy.stats import gmean
 import math
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score
+from scipy.stats import ks_2samp, ttest_ind
 
 
 warnings.filterwarnings('ignore')
@@ -387,6 +388,29 @@ def should_can_simple(X, y, flag, regular=0, max_max_depth=6, seed=42, test_size
     s = should(X, y, flag, regular)
     c = can_simplicity(X, y, flag, max_max_depth=max_max_depth, seed=seed, test_size=test_size)['score']
     return s*c
+
+def compare_preds(X, y, flag, model=None):
+
+    if not model:
+        model = xgb.XGBRegressor(
+            random_state=seed,
+            n_estimators=n_estimators,
+            max_depth=max_depth)
+        model.fit(X, y)
+
+    preds = model.predict(X)
+
+    preds_0 = preds[flag == 0]
+    preds_1 = preds[flag == 1]
+
+    res = dict()
+
+    res['diff'] = np.mean(preds_1) - np.mean(preds_0)
+    res['ks'] = ks_2samp(preds_0, preds_1)['pvalue']
+    res['ttest'] = ttest_ind(preds_0, preds_1)['pvalue']
+
+    return res
+
 
 
 def double_r(X, y, flag, model=None, seed=42, n_estimators=20, max_depth=6):
