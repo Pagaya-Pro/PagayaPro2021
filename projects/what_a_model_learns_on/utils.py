@@ -479,7 +479,9 @@ def double_r(X, y, flag, model=None, seed=42, n_estimators=20, max_depth=6):
         model.fit(X, y)
     zeros = X[flag == 0].index
     ones = X[flag == 1].index
+    print("hi")
     if len(zeros) != len(ones):
+        print("in")
         if len(zeros) < len(ones):
             idx_to_keep = equalize(zeros, ones, seed)
         else:
