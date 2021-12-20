@@ -400,8 +400,8 @@ def compare_preds(X, y, flag, model=None, alpha=0.01):
 
     preds = model.predict(X)
 
-    preds_0 = preds[flag == 0]
-    preds_1 = preds[flag == 1]
+    preds_0 = preds[flag == 0].values
+    preds_1 = preds[flag == 1].values
 
     res = dict()
 
