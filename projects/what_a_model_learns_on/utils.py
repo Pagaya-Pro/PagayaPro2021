@@ -16,7 +16,7 @@ import math
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score
 from scipy.stats import ks_2samp, ttest_ind
-
+from kneed import KneeLocator
 
 warnings.filterwarnings('ignore')
 
@@ -40,8 +40,6 @@ def annual_to_monthly_int_rate(annual_int_rate):
 
 def calc_monthly_pmt(df):
     """
-
-
     :param df:
     :return:
     """
@@ -228,6 +226,41 @@ def gain(X, y, flag, initial=0, regular=0):
     root_similarity = similarity(y, regular, initial)
 
     return zeros_similarity + ones_similarity - root_similarity
+
+
+def get_dependent_features(X, flag, acc_thld=0.75, dec_thld=0.8):
+    dependent_features = []
+    first_balances_acc = None
+
+    # Predict flag by using the remaining features with XGBoost classification
+    while len(dependent_features) < X.shape[1]:
+        X_cur = X.drop(columns=dependent_features)
+        flag_clf = xgb.XGBClassifier(n_estimators=7, random_state=123)
+        flag_clf.fit(X_cur, flag)
+        flag_preds = flag_clf.predict(X_cur)
+
+        # Drop features if balanced accuracy passes threshold
+        balanced_acc = bas(flag, flag_preds, adjusted=False)
+
+        # print(f'Balanced accuracy = {balanced_acc:.4f}')
+        if first_balances_acc is not None and (balanced_acc / first_balances_acc) < dec_thld:
+            break
+
+        # Calculate SHAP values
+        explainer = shap.Explainer(flag_clf)
+        shap_values = explainer(X_cur)
+        df_shap_values = pd.DataFrame(shap_values.values, columns=X_cur.columns, index=X_cur.index).abs()
+        df_shap_values_norm = df_shap_values.divide(df_shap_values.sum(axis=1), axis=0)
+        shap_values_norm = df_shap_values_norm.mean(axis=0)
+        max_shap_feature = X.columns[shap_values_norm.argmax()]
+        if first_balances_acc is None:
+            first_balances_acc = balanced_acc
+            if balanced_acc < acc_thld:
+                break
+        dependent_features.append(max_shap_feature)
+
+    return dependent_features
+
 
 # ======================
 # Main Functions
@@ -458,3 +491,55 @@ def double_r(X, y, flag, model=None, seed=42, n_estimators=20, max_depth=6):
     leaves = model.apply(X)
     return double_r_model(leaves, X, flag)
 
+
+def SHAP_score(X, y, flag):
+    # Find dependent features
+    dependent_features = get_dependent_features(X, flag)
+
+    # Calculate Should
+    X_flag = X.drop(dependent_features, axis=1)
+    X_flag['flag'] = flag
+    flag_model = xgb.XGBRegressor(n_estimators=20, random_state=42)
+    flag_model.fit(X_flag, y)
+
+    flag_explainer = shap.Explainer(flag_model)
+    flag_shap_values = flag_explainer(X_flag)
+
+    df_flag_shap_values = pd.DataFrame(flag_shap_values.values, columns=X_flag.columns, index=X_flag.index)
+    should = (df_flag_shap_values.flag.abs() / df_flag_shap_values.abs().sum(axis=1)).mean()
+
+    # Calculate Can
+    model = xgb.XGBClassifier(n_estimators=7, random_state=111)
+    model.fit(X, flag)
+    can = bas(flag, model.predict(X), adjusted=True)
+
+    # Calculate Difficulty
+    most_important = copy.deepcopy(dependent_features)
+    accs = []
+    for i in range(len(dependent_features)):
+        dependent_model = xgb.XGBClassifier(n_estimators=20, random_state=42)
+        dependent_model.fit(X[most_important], flag)
+        dependent_preds = dependent_model.predict(X[most_important])
+        accuracy = bas(flag, dependent_preds, adjusted=False)
+        accs.append(accuracy)
+
+        explainer = shap.Explainer(dependent_model)
+        shap_values = explainer(X[most_important])
+        df_shap_values = pd.DataFrame(shap_values.values, columns=most_important,
+                                      index=X[most_important].index).abs().mean(axis=0)
+        drop_feature = df_shap_values.idxmin()
+        most_important.remove(drop_feature)
+
+    if len(accs) <= 2:
+        if len(accs) == 0:
+            difficulty = float('inf')
+        else:
+            difficulty = len(accs)
+    else:
+        difficulty = KneeLocator(range(len(accs)), accs, curve='concave', direction='decreasing')
+        if difficulty == 1 or difficulty == len(accs):
+            difficulty = KneeLocator(range(len(accs)), accs, curve='convex', direction='decreasing')
+
+    # Print results and return values
+    print(f'should = {should}\tcan = {can}\tdifficulty = {difficulty}')
+    return should, can, difficulty
