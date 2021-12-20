@@ -243,7 +243,6 @@ def get_dependent_features(X, flag, acc_thld=0.75, dec_thld=0.8):
         # Drop features if balanced accuracy passes threshold
         balanced_acc = bas(flag, flag_preds, adjusted=False)
 
-        # print(f'Balanced accuracy = {balanced_acc:.4f}')
         if first_balances_acc is not None and (balanced_acc / first_balances_acc) < dec_thld:
             break
 
@@ -537,10 +536,11 @@ def SHAP_score(X, y, flag):
         else:
             difficulty = len(accs)
     else:
-        difficulty = KneeLocator(range(len(accs)), accs, curve='concave', direction='decreasing')
+        difficulty = KneeLocator(range(1, len(accs) + 1), accs, curve='concave', direction='decreasing').knee
         if difficulty == 1 or difficulty == len(accs):
-            difficulty = KneeLocator(range(len(accs)), accs, curve='convex', direction='decreasing')
+            difficulty = KneeLocator(1, range(len(accs) + 1), accs, curve='convex', direction='decreasing').knee
+        elif difficulty is None:  # All accuracies are equal
+            difficulty = 1
 
-    # Print results and return values
-    print(f'should = {should}\tcan = {can}\tdifficulty = {difficulty}')
+    # Return results
     return should, can, difficulty
