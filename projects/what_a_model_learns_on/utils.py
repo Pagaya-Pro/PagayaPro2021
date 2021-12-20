@@ -532,11 +532,15 @@ def SHAP_score(X, y, flag):
         drop_feature = df_shap_values.idxmin()
         most_important.remove(drop_feature)
 
-    if len(accs) <= 2:
-        if len(accs) == 0:
-            difficulty = float('inf')
+    if len(accs) == 0:
+        difficulty = float('inf')
+    elif len(accs) == 1:
+        difficulty = 1
+    elif len(accs) == 2:
+        if accs[1] / accs[0] >= 0.85:
+            difficulty = 1
         else:
-            difficulty = len(accs)
+            difficulty = 2
     else:
         difficulty = KneeLocator(range(1, len(accs) + 1), accs, curve='concave', direction='decreasing').knee
         if difficulty == 1 or difficulty == len(accs):
