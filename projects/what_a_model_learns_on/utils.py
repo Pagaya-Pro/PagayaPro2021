@@ -378,7 +378,7 @@ def can_simplicity(X, y, flag, balanced=True, verbose=False, plot_tree=False, ma
     max_score = can_list[max_score_id]
 
     if plot_tree:
-        fig, ax = plt.subplots(figsize=(8+2*max_prod_idת 8+2*max_prod_id))
+        fig, ax = plt.subplots(figsize=(8+2*max_prod_id, 8+2*max_prod_id))
         xgb.plot_tree(models[max_prod_id], ax=ax)
         plt.title(f'Can*Simplicity tree (depth= {max_prod_id+1}, accuracy={can_list[max_prod_id]}')
         plt.show();
