@@ -253,7 +253,7 @@ def get_dependent_features(X, flag, acc_thld=0.75, dec_thld=0.8):
         df_shap_values = pd.DataFrame(shap_values.values, columns=X_cur.columns, index=X_cur.index).abs()
         df_shap_values_norm = df_shap_values.divide(df_shap_values.sum(axis=1), axis=0)
         shap_values_norm = df_shap_values_norm.mean(axis=0)
-        max_shap_feature = X.columns[shap_values_norm.argmax()]
+        max_shap_feature = X_cur.columns[shap_values_norm.argmax()]
         if first_balances_acc is None:
             first_balances_acc = balanced_acc
             if balanced_acc < acc_thld:
