@@ -17,6 +17,7 @@ from tqdm import tqdm
 from sklearn.metrics import accuracy_score
 from scipy.stats import ks_2samp, ttest_ind
 from kneed import KneeLocator
+import copy
 
 warnings.filterwarnings('ignore')
 
