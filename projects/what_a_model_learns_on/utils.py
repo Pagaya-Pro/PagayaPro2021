@@ -487,6 +487,8 @@ def double_r(X, y, flag, model=None, seed=42, n_estimators=20, max_depth=6):
         idx_to_keep_bool = X.index.isin(idx_to_keep) == True
         X = X[idx_to_keep_bool]
         y = y[idx_to_keep_bool]
+        print(len(X[flag==0]))
+        print(len(X[flag == 1]))
         flag = flag[idx_to_keep_bool]
     leaves = model.apply(X)
     return double_r_model(leaves, X, flag)
