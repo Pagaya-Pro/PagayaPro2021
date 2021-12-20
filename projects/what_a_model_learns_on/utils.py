@@ -270,7 +270,7 @@ def calc_irr(cashflows, info_date=None):
     return cashflows_payments.swifter.apply(npf.irr, axis=1).swifter.apply(lambda irr: ((irr + 1) ** 12 - 1) * 100,
                                                                            axis=1).fillna(-100)
 
-def should(X, y, flag, regular=0):
+def should(X, y, flag, regular=0, verbose=False):
     """
     This function calculates the "should" score we came up with. Given a flag feature and the target vector,
     the "should" score intends to measure how useful it is to use the flag as a feature when training a
@@ -288,13 +288,22 @@ def should(X, y, flag, regular=0):
     """
     normalize = []
 
-    for i in [np.min(y) - 1, np.max(y) + 1]:
-        normalize.append(similarity(y, regular, i))
+    for i, initial in enumerate([np.min(y) - 1, np.max(y) + 1]):
+        sim = similarity(y, regular, initial)
+        normalize.append(sim)
+        txt = 'min'
+        if i==1:
+            txt = 'max'
+        if verbose:
+            print(f'Similarity when initial is {txt}: {sim}')
 
-    return gain(X, y, flag) / gmean(normalize)
+    g = gain(X, y, flag)
+    if verbose:
+        print(f'Gain: {g}')
+    return g / gmean(normalize)
 
 
-def can_simplicity(X, y, flag, balanced=True, verbose=False, plot_trees=False, max_max_depth=6, seed=42, test_size=0.33):
+def can_simplicity(X, y, flag, balanced=True, verbose=False, plot_tree=False, max_max_depth=6, seed=42, test_size=0.33):
     """
     This function calculates the "can*simplicity" score we came up with. Given a flag feature and the training dataset,
     the "can*simplicity" score intends to measure how easy it is to predict the flag from the data.
@@ -325,6 +334,7 @@ def can_simplicity(X, y, flag, balanced=True, verbose=False, plot_trees=False, m
     """
     can_list = []
     products = []
+    models = []
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         flag,
@@ -341,6 +351,7 @@ def can_simplicity(X, y, flag, balanced=True, verbose=False, plot_trees=False, m
             max_depth=dep)
 
         model.fit(X_train, y_train)
+        models.append(model)
         probs = model.predict(X_test)
         preds = np.zeros(len(probs))
         preds[probs > 0.5] = 1
@@ -354,12 +365,6 @@ def can_simplicity(X, y, flag, balanced=True, verbose=False, plot_trees=False, m
         can_list.append(score)
         products.append(product)
 
-        if plot_trees:
-            fig, ax = plt.subplots(figsize=(8 * np.sqrt(dep), 8 * np.sqrt(dep)))
-            xgb.plot_tree(model, ax=ax)
-            plt.title(f'Depth: {dep}')
-            plt.show();
-
         if verbose:
             print(f'Depth: {dep}')
             print(f'\tAccuracy: {acc}')
@@ -371,6 +376,12 @@ def can_simplicity(X, y, flag, balanced=True, verbose=False, plot_trees=False, m
     max_prod = products[max_prod_id]
     max_score_id = np.argmax(can_list)
     max_score = can_list[max_score_id]
+
+    if plot_tree:
+        fig, ax = plt.subplots(figsize=(8 * np.sqrt(dep), 8 * np.sqrt(dep)))
+        xgb.plot_tree(models[max_prod_id], ax=ax)
+        plt.title(f'Can*Simplicity tree (depth= {max_prod_id+1}, accuracy={can_list[max_prod_id]}')
+        plt.show();
 
     if verbose:
         print(
