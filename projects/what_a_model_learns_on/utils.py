@@ -504,10 +504,11 @@ def double_r(X, y, flag, model=None, seed=42, n_estimators=20, max_depth=6, plot
     return np.mean(res)
 
 
-def SHAP_score(X, y, flag):
+def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
     # Find dependent features
-    dependent_features = get_dependent_features(X, flag)
-
+    dependent_features = get_dependent_features(X, flag, acc_thld=acc_thld, dec_thld=dec_thld)
+    if print_dependent:
+        print(f'dependent features: {dependent_features}')
     # Calculate Should
     X_flag = X.drop(dependent_features, axis=1)
     X_flag['flag'] = flag
