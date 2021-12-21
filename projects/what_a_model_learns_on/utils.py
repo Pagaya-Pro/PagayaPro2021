@@ -544,7 +544,7 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
         most_important.remove(drop_feature)
 
     if len(accs) == 0:
-        difficulty = float('inf')
+        difficulty = np.nan
     elif len(accs) == 1:
         difficulty = 1
     elif len(accs) == 2:
