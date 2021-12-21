@@ -18,6 +18,7 @@ from sklearn.metrics import accuracy_score
 from scipy.stats import ks_2samp, ttest_ind
 from kneed import KneeLocator
 import copy
+from sklearn import metrics
 
 warnings.filterwarnings('ignore')
 
@@ -524,7 +525,9 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
     # Calculate Can
     model = xgb.XGBClassifier(n_estimators=7, random_state=111)
     model.fit(X, flag)
-    can = bas(flag, model.predict(X), adjusted=True)
+    proba = model.predict_proba(X)[:, 1]
+    fpr, tpr, thresholds = metrics.roc_curve(flag, proba, drop_intermediate=False)
+    can = bas(flag, (proba > thresholds[np.argmax(tpr - fpr)]).astype(int), adjusted=False)
 
     # Calculate Difficulty
     most_important = copy.deepcopy(dependent_features)
