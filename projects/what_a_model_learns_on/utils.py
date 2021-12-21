@@ -201,7 +201,7 @@ def double_r_model(leaves, X, flag):
     trees_score = []
     for tree in tqdm(trees_leaves):
         trees_score.append(double_r_tree(tree, flag))
-    return np.mean(trees_score)
+    return trees_score
 
 
 def equalize(small_idx, large_idx, seed=42):
@@ -456,7 +456,7 @@ def compare_preds(X, y, flag, model=None, alpha=0.01):
 
 
 
-def double_r(X, y, flag, model=None, seed=42, n_estimators=20, max_depth=6):
+def double_r(X, y, flag, model=None, seed=42, n_estimators=20, max_depth=6, plot_acc=False):
     """
     :param X: Model features
     :param y: Model labels
@@ -493,7 +493,17 @@ def double_r(X, y, flag, model=None, seed=42, n_estimators=20, max_depth=6):
         model.fit(X, y)
 
     leaves = model.apply(X)
-    return double_r_model(leaves, X, flag), model
+    res = double_r_model(leaves, X, flag)
+
+    if plot_acc:
+        acc_df = pd.DataFrame(index=np.arange(1, n_estimators+1), data=res)
+        sns.scatterplot(data=acc_df)
+        plt.xlabel('Tree number')
+        plt.ylabel('Tree score')
+        plt.title('R2C tree score for each tree in the model')
+        plt.show();
+
+    return np.mean(res)
 
 
 def SHAP_score(X, y, flag):
