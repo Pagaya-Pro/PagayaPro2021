@@ -177,7 +177,7 @@ def set_information_date(df, info_year, info_month):
     return edit_prepaid_loans_payments(df)
 
 def double_r_leaf(leaf_flags, len_data):
-    return (len(leaf_flags) * abs(leaf_flags.mean()-0.5)) / len_data
+    return ((len(leaf_flags) * abs(leaf_flags.mean()-0.5)) / len_data) + 0.5
 
 def double_r_tree(leaves, flag):
     leaves_score = []
