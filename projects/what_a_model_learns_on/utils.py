@@ -568,7 +568,7 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
                                  direction='decreasing').knee
         if difficulty == 1 or difficulty == len(can_agg_shap):
             difficulty = KneeLocator(1, range(len(can_agg_shap) + 1), can_agg_shap, curve='concave',
-                                     direction='increasing').knee
+                                     direction='decreasing').knee
 
     elif len(accs) == 1:
         difficulty = 1
@@ -612,7 +612,7 @@ def can_difficulty(X, flag):
     difficulty = KneeLocator(range(1, len(can_agg_shap) + 1), can_agg_shap, curve='convex', direction='decreasing').knee
     if difficulty == 1 or difficulty == len(can_agg_shap):
         difficulty = KneeLocator(1, range(len(can_agg_shap) + 1), can_agg_shap, curve='concave',
-                                 direction='increasing').knee
+                                 direction='decreasing').knee
 
     # Return results
     return can, difficulty
