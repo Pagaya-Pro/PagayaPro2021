@@ -66,7 +66,7 @@ def read_data_base():
     since = time.time()
     features = pd.read_parquet('s3://pagaya-pro-bucket/projects/survival_analysis/petal_features.parquet')
     time_elapsed = time.time() - since
-    print(f'Processing completed in {(time_elapsed // 60):.0f}m {(time_elapsed % 60):.0f}s')
+    print(f'reading features completed in {(time_elapsed // 60):.0f}m {(time_elapsed % 60):.0f}s')
 
     payments = pd.read_parquet('s3://pagaya-pro-bucket/projects/survival_analysis/petal_payments.parquet')
 
@@ -114,7 +114,7 @@ def preprocess(features, payments, col_lst=col_lst, intersection=True, annoying_
     payments_copy = payments.copy()
     features_copy = features.copy()
 
-    print('Starting to process')
+    print('Starting to preprocess')
 
     if intersection:
         features_copy, payments_copy = get_intersection(features_copy, payments_copy)
@@ -206,7 +206,7 @@ def preprocess(features, payments, col_lst=col_lst, intersection=True, annoying_
 
     time_elapsed = time.time() - since
     print()
-    print(f'Processing completed in {(time_elapsed // 60):.0f}m {(time_elapsed % 60):.0f}s')
+    print(f'preprocessing completed in {(time_elapsed // 60):.0f}m {(time_elapsed % 60):.0f}s')
 
     if ret_cols:
         return payments_features, payments_cashflows, features_copy, col_lst[3]
@@ -238,6 +238,7 @@ def get_X_y(features, std_thres=0.1, corr_thres=0.8, random_state=42):
 
 def final_processing(payments_features, payments_cashflows, features_copy, params,
                      num_boost_round, std_thres=0.1, corr_thres=0.8, random_state=42):
+    print('final processing started')
     payments_features_processed = payments_features.copy()
     payments_cashflows_processed = payments_cashflows.copy()
     features_processed = features_copy.copy()
@@ -268,7 +269,7 @@ def final_processing(payments_features, payments_cashflows, features_copy, param
     payments_features_processed.drop(columns=['decline_reason_BAD_CASHFLOW_MODEL_SCORE',
                                               'decline_reason_INTERNATIONAL_PEP_UNABLE_TO_VERIFY'], inplace=True)
     payments_features_processed['co_indicator'] = payments_features_processed.co_mob > 0
-
+    print('final processing finished')
     return payments_features_processed, payments_cashflows_processed, features_processed
 
 
@@ -314,67 +315,67 @@ def vertical_cut(payments, X, cut=12):
     return X_train, X_test
 
 
-def vanilla_process(features, payments, encode_state=True, PCA_components=50, present_explained_variance=True,
-                    drop_nan=True, nan_per=0.6, random_state=4, label_cut=None,
-                    include_y_in_X=True, test_size=0.33, standardize=True, split=True):
-    X = features.copy()
-    y = get_label_sklearn(payments, cut=label_cut)
-    X = pd.concat([X, y], axis=1)
-
-    scores_cols = X.filter(like='score').columns.drop('finscore')
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
-
-    if encode_state:
-        state_encoding = X_train.groupby('state_tu').co_indicator.mean()
-        X.state_tu = X.state_tu.map(state_encoding)
-        scores_cols = np.insert(scores_cols, 0, 'state_tu')
-
-    X_keep = X[scores_cols]
-    X_keep.fillna(X_keep.loc[X_train.index].mean(axis=0), axis=0, inplace=True)
-    X_numeric = X.select_dtypes(include='number').drop(columns=scores_cols).iloc[:, :-2]
-
-    if drop_nan:
-        drop_cols = X_numeric.loc[X_train.index].isna().sum() > (nan_per * len(X_train))
-        X_numeric.drop(columns=drop_cols[drop_cols].index, inplace=True)
-        X_numeric.fillna(X_numeric.loc[X_train.index].mean(axis=0), axis=0, inplace=True)
-
-    std_sclr = StandardScaler()
-    pca = PCA(PCA_components, random_state=random_state)
-
-    if split:
-        std_sclr.fit(X_numeric.loc[X_train.index])
-        pca.fit(std_sclr.transform(X_numeric.loc[X_train.index]))
-    else:
-        std_sclr.fit(X_numeric)
-        pca.fit(std_sclr.transform(X_numeric))
-
-    features_pca = pd.DataFrame(pca.transform(std_sclr.transform(X_numeric)), index=X_numeric.index)
-
-    if standardize:
-        if split:
-            std_sclr.fit(X_keep.loc[X_train.index])
-        else:
-            std_sclr.fit(X_keep)
-
-        X_keep = pd.DataFrame(std_sclr.transform(X_keep), index=X_keep.index, columns=X_keep.columns)
-
-    if present_explained_variance:
-        pca_explained_variance = sum(pca.explained_variance_ratio_)
-        print(f'Processing completed, explained variance for {PCA_components} components is {pca_explained_variance}')
-
-    if include_y_in_X:
-        X = pd.concat([features_pca, X_keep, y], axis=1)
-        if split:
-            return X.loc[X_train.index], X.loc[X_test.index]
-        else:
-            return X
-    else:
-        X = pd.concat([features_pca, X_keep], axis=1)
-        if split:
-            return X.loc[X_train.index], X.loc[X_test.index], y_train, y_test
-        else:
-            return X, y
+# def vanilla_process(features, payments, encode_state=True, PCA_components=50, present_explained_variance=True,
+#                     drop_nan=True, nan_per=0.6, random_state=4, label_cut=None,
+#                     include_y_in_X=True, test_size=0.33, standardize=True, split=True):
+#     X = features.copy()
+#     y = get_label_sklearn(payments, cut=label_cut)
+#     X = pd.concat([X, y], axis=1)
+#
+#     scores_cols = X.filter(like='score').columns.drop('finscore')
+#
+#     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+#
+#     if encode_state:
+#         state_encoding = X_train.groupby('state_tu').co_indicator.mean()
+#         X.state_tu = X.state_tu.map(state_encoding)
+#         scores_cols = np.insert(scores_cols, 0, 'state_tu')
+#
+#     X_keep = X[scores_cols]
+#     X_keep.fillna(X_keep.loc[X_train.index].mean(axis=0), axis=0, inplace=True)
+#     X_numeric = X.select_dtypes(include='number').drop(columns=scores_cols).iloc[:, :-2]
+#
+#     if drop_nan:
+#         drop_cols = X_numeric.loc[X_train.index].isna().sum() > (nan_per * len(X_train))
+#         X_numeric.drop(columns=drop_cols[drop_cols].index, inplace=True)
+#         X_numeric.fillna(X_numeric.loc[X_train.index].mean(axis=0), axis=0, inplace=True)
+#
+#     std_sclr = StandardScaler()
+#     pca = PCA(PCA_components, random_state=random_state)
+#
+#     if split:
+#         std_sclr.fit(X_numeric.loc[X_train.index])
+#         pca.fit(std_sclr.transform(X_numeric.loc[X_train.index]))
+#     else:
+#         std_sclr.fit(X_numeric)
+#         pca.fit(std_sclr.transform(X_numeric))
+#
+#     features_pca = pd.DataFrame(pca.transform(std_sclr.transform(X_numeric)), index=X_numeric.index)
+#
+#     if standardize:
+#         if split:
+#             std_sclr.fit(X_keep.loc[X_train.index])
+#         else:
+#             std_sclr.fit(X_keep)
+#
+#         X_keep = pd.DataFrame(std_sclr.transform(X_keep), index=X_keep.index, columns=X_keep.columns)
+#
+#     if present_explained_variance:
+#         pca_explained_variance = sum(pca.explained_variance_ratio_)
+#         print(f'Processing completed, explained variance for {PCA_components} components is {pca_explained_variance}')
+#
+#     if include_y_in_X:
+#         X = pd.concat([features_pca, X_keep, y], axis=1)
+#         if split:
+#             return X.loc[X_train.index], X.loc[X_test.index]
+#         else:
+#             return X
+#     else:
+#         X = pd.concat([features_pca, X_keep], axis=1)
+#         if split:
+#             return X.loc[X_train.index], X.loc[X_test.index], y_train, y_test
+#         else:
+#             return X, y
 
 
 def remove_correlation(X_train, X_test=None, include_y=True, present_progress=True, remove_amnt=2,
@@ -905,21 +906,17 @@ def enrich_from_payments_really(payments_cashflows, payments_features, cut_month
     return df
 
 
-def best_model_process(features, payments, payments_cashflows, random_state=4, label_cut=None, test_size=0.20,
-                       standardize=True, split=True):
-    X = features.copy()
-    y = get_label_sklearn(payments, cut=label_cut)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
-
+def best_model_process(X_train, X_test, y, payments, payments_cashflows, random_state=4, label_cut=None, test_size=0.20,
+                       standardize=True, split=True, enrich_from_payments=False):
+    X = pd.concat([X_train, X_test], axis=0)
     numeric_features = X.select_dtypes(include='number').copy()
     numeric_features_train = X_train.select_dtypes(include='number').copy()
-    only_one_value_under_0 = numeric_features.columns[numeric_features_train[numeric_features_train < 0].std() == 0]
     if split:
+        only_one_value_under_0 = numeric_features.columns[numeric_features_train[numeric_features_train < 0].std() == 0]
         for col in only_one_value_under_0:
             numeric_features[col].replace(numeric_features[col][numeric_features[col] < 0].unique()[0],
                                           numeric_features_train.loc[numeric_features_train[col] >= 0, col].mean(),
                                           inplace=True)
-
         # remove large numbers with only 9 digit
         to_drop = [col for col in numeric_features_train.columns if
                    numeric_features_train[col].value_counts().shape[0] < 2]
@@ -931,32 +928,35 @@ def best_model_process(features, payments, payments_cashflows, random_state=4, l
                                                                features_mor_then_2.min()).max()
         features_processed_min = features_mor_then_2.min()
         haw_far = (features_processed_max - features_processed_2_max) / (
-                features_processed_2_max - features_processed_min)
+                    features_processed_2_max - features_processed_min)
         features_mor_then_2.loc[:, (haw_far < 1) & (features_processed_max.apply(is_only_9))].replace(
             features_mor_then_2.max(), np.nan, inplace=True)
         numeric_features[features_mor_then_2.columns] = features_mor_then_2
         numeric_features.fillna(numeric_features.mean())
-        X[numeric_features.columns] = numeric_features
-        X.drop(to_drop, axis=1, inplace=True)
+        X_train[numeric_features.columns] = numeric_features
+        X_test[numeric_features.columns] = numeric_features
+        X_train.drop(to_drop, axis=1, inplace=True)
+        X_test.drop(to_drop, axis=1, inplace=True)
         # handling categories
         to_remove = []
-        for col in X_train.select_dtypes(include=['object']).columns:
+        for col in X_train.select_dtypes(include=['object', 'category']).columns:
             if (X_train[col].value_counts().shape[0] < 2) or (X_train[col].value_counts()[0] < 10):
                 to_remove.append(col)
             else:
                 col_to_co_percentage = X_train.join(y).groupby(col).co_indicator.mean()
-                X[col] = X[col].map(col_to_co_percentage)
-        X.drop(to_remove, axis=1, inplace=True)
+                X_train[col] = X_train[col].map(col_to_co_percentage)
+                X_test[col] = X_test[col].map(col_to_co_percentage)
+        X_train.drop(to_remove, axis=1, inplace=True)
+        X_test.drop(to_remove, axis=1, inplace=True)
         with_month = X_train.corrwith(y.loc[X_train.index][y.loc[X_train.index].co_indicator].max_mob).sort_values(
             key=lambda x: np.abs(x), ascending=False)
         with_co = X_train.corrwith(y.loc[X_train.index].co_indicator).sort_values(key=lambda x: np.abs(x),
                                                                                   ascending=False)
-
     else:
+        only_one_value_under_0 = numeric_features.columns[numeric_features[numeric_features < 0].std() == 0]
         for col in only_one_value_under_0:
             numeric_features[col].replace(numeric_features[col][numeric_features[col] < 0].unique()[0],
                                           numeric_features.loc[numeric_features[col] >= 0, col].mean(), inplace=True)
-
         # remove large numbers with only 9 digit
         to_drop = [col for col in numeric_features.columns if numeric_features[col].value_counts().shape[0] < 2]
         to_drop_temp = [col for col in numeric_features.columns if numeric_features[col].value_counts().shape[0] < 3]
@@ -966,7 +966,7 @@ def best_model_process(features, payments, payments_cashflows, random_state=4, l
                                                                features_mor_then_2.min()).max()
         features_processed_min = features_mor_then_2.min()
         haw_far = (features_processed_max - features_processed_2_max) / (
-                features_processed_2_max - features_processed_min)
+                    features_processed_2_max - features_processed_min)
         features_mor_then_2.loc[:, (haw_far < 1) & (features_processed_max.apply(is_only_9))].replace(
             features_mor_then_2.max(), np.nan, inplace=True)
         numeric_features[features_mor_then_2.columns] = features_mor_then_2
@@ -975,7 +975,7 @@ def best_model_process(features, payments, payments_cashflows, random_state=4, l
         X.drop(to_drop, axis=1, inplace=True)
         # handling categories
         to_remove = []
-        for col in X.select_dtypes(include=['object']).columns:
+        for col in X.select_dtypes(include=['object', 'category']).columns:
             if (X[col].value_counts().shape[0] < 2) or (X[col].value_counts()[0] < 10):
                 to_remove.append(col)
             else:
@@ -984,84 +984,95 @@ def best_model_process(features, payments, payments_cashflows, random_state=4, l
         X.drop(to_remove, axis=1, inplace=True)
         with_month = X.corrwith(y[y.co_indicator].max_mob).sort_values(key=lambda x: np.abs(x), ascending=False)
         with_co = X.corrwith(y.co_indicator).sort_values(key=lambda x: np.abs(x), ascending=False)
-
     top_cor = pd.concat([with_co[:300], with_month[:300]], axis=1)
     top_cor['max'] = top_cor.fillna(0).swifter.apply(lambda row: max(abs(row[0]), abs(row[1])), axis=1)
-
     if split:
-        df = X[top_cor.index].corr().abs().stack()
-    else:
         df = X_train[top_cor.index].corr().abs().stack()
-
+    else:
+        df = X[top_cor.index].corr().abs().stack()
     to_drop = set()
     for tup in df[(df > .7)].index:
         if (len(set(tup)) > 1) and (not set(tup) & to_drop):
             to_drop.add(top_cor.loc[list(tup), 'max'].idxmin())
     top_cor.drop(list(to_drop), axis=0, inplace=True)
-
     if split:
-        numeric_features_train = numeric_features[top_cor.index].loc[X_train.index]
-        numeric_features_test = numeric_features[top_cor.index].loc[X_test.index]
-        numeric_features_train.fillna(numeric_features_train.mean(axis=0), inplace=True)
-        numeric_features_test.fillna(numeric_features_train.mean(axis=0), inplace=True)
+        X_train = X_train[top_cor.index]
+        X_test = X_test[top_cor.index]
+        X_train.fillna(X_train.mean(axis=0), inplace=True)
+        X_test.fillna(X_train.mean(axis=0), inplace=True)
     else:
-        numeric_features = numeric_features[top_cor.index]
-        numeric_features.fillna(numeric_features.mean(axis=0), inplace=True)
-
-    df = enrich_from_payments_really(payments_cashflows, payments, cut_months=label_cut)
-    if split:
-        X_train = pd.concat([numeric_features_train, df], join='inner', axis=1)
-        X_test = pd.concat([numeric_features_test, df], join='inner', axis=1)
-    else:
-        X = pd.concat([numeric_features, df], axis=1)
-
+        X = X[top_cor.index]
+        X.fillna(X.mean(axis=0), inplace=True)
+    if enrich_from_payments:
+        df = enrich_from_payments_really(payments_cashflows, payments, cut_months=label_cut)
+        if split:
+            X_train = pd.concat([X_train, df], join='inner', axis=1)
+            X_test = pd.concat([X_test, df], join='inner', axis=1)
+        else:
+            X = pd.concat([X, df], axis=1)
     std_sclr = StandardScaler()
     if split:
+        # X_train.drop(columns='issue_date', axis=1, inplace=True)
+        # X_test.drop(columns='issue_date', axis=1, inplace=True)
         std_sclr.fit(X_train)
         X_train = pd.DataFrame(std_sclr.transform(X_train), index=X_train.index, columns=X_train.columns)
         X_test = pd.DataFrame(std_sclr.transform(X_test), index=X_test.index, columns=X_test.columns)
     else:
+        # X.drop(columns='issue_date', axis=1, inplace=True)
         std_sclr.fit(X)
         X = pd.DataFrame(std_sclr.transform(X), index=X.index, columns=X.columns)
-
-    cols = ['ADS14V71_Audit_G231S', 'ads73a59_audit_inpl01']
-
     if split:
+        cols = list({'ADS14V71_Audit_G231S', 'ads73a59_audit_inpl01'} & set(X_train))
         return pd.concat([X_train.drop(columns=cols, axis=1), y], join='inner', axis=1), pd.concat(
             [X_test.drop(columns=cols, axis=1), y], join='inner', axis=1)
     else:
+        cols = list({'ADS14V71_Audit_G231S', 'ads73a59_audit_inpl01'} & set(X))
         return pd.concat([X.drop(columns=cols, axis=1), y], axis=1)
 
 
 def main():
+    X_test, X_train = data_preprocess(split=True)
+    cph_super_enriched = fit_the_model(X_train)
+    alpha, beta, h_0, step_h_0 = get_h_0(X_train.iloc[:, -2:], 12, 36)
+    # pickle.dump(cph_super_enriched, open('model.sav', 'wb'))
+    # pickle.dump(cph_super_enriched, open('X_train', 'wb'))
+    # pickle.dump(cph_super_enriched, open('X_test', 'wb'))
+    print('predict hazard starts')
+    res = predict_hazard_function(cph_super_enriched, X_test, h_0, np.arange(3, 29))
+
+
+def data_preprocess(split=True):
     features, payments = read_data_base()
     payments_features, payments_cashflows, features_copy, feature_lst = preprocess(features, payments, ret_cols=True,
                                                                                    last_seq_table=['monthly_payments'],
                                                                                    last_seq_num=6)
-
     payments_features_processed, payments_cashflows_processed, features_processed = final_processing(payments_features,
                                                                                                      payments_cashflows,
                                                                                                      features_copy)
-    X_train, X_test = best_model_process(features_processed, payments_features_processed,
-                                         payments_cashflows_processed, standardize=True)
+    print('best model process started')
+    X = features_processed.copy()
+    y = get_label_sklearn(payments_features_processed, cut=None)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+    if split:
+        X_train, X_test = best_model_process(X_train, X_test, y, payments_features_processed,
+                                             payments_cashflows_processed, standardize=True, split=split,
+                                             enrich_from_payments=False)
+        print('best model process finished')
+    else:
+        X = best_model_process(features_processed, payments_features_processed,
+                               payments_cashflows_processed, standardize=True, split=False, enrich_from_payments=False)
+    if split:
+        return X_test, X_train
+    else:
+        return X
+
+
+def fit_the_model(X):
     cph_super_enriched = CoxPHFitter()
-    cph_super_enriched.fit(X_train, 'max_mob', event_col='co_indicator', step_size=0.5,
+    cph_super_enriched.fit(X, 'max_mob', event_col='co_indicator', step_size=0.5,
                            show_progress=True)
-    alpha, beta, h_0, step_h_0 = get_h_0(X_train.iloc[:, -2:], 12, 36)
-    print('predict hazard starts')
-    res = predict_hazard_function(cph_super_enriched, X_test, h_0, np.arange(3, 29))
-    # prediction:
-    X = best_model_process(features_processed, payments_features_processed,
-                           payments_cashflows_processed, standardize=True, split=False)
-    print('model finished the best process')
-    cph_super_enriched2 = CoxPHFitter()
-    cph_super_enriched2.fit(X, 'max_mob', event_col='co_indicator', step_size=0.5,
-                            show_progress=True)
-
-    pickle.dump(cph_super_enriched, open('model.sav', 'wb'))
-    alpha, beta, h_0, step_h_0 = get_h_0(X.iloc[:, -2:], 12, 36)
-    res = predict_hazard_function(cph_super_enriched2, X_test, h_0, np.arange(3, 29))
+    return cph_super_enriched
 
 
 if __name__ == '__main__':
