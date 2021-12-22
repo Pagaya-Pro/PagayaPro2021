@@ -367,6 +367,7 @@ def can_simplicity(X, y, flag, verbose=False, plot_tree=False, max_max_depth=6, 
             Depth: The depth of the winning model.
     """
     can_list = []
+    acc_list = []
     products = []
     models = []
 
@@ -404,6 +405,7 @@ def can_simplicity(X, y, flag, verbose=False, plot_tree=False, max_max_depth=6, 
         preds[probs > 0.5] = 1
 
         acc = accuracy_score(y_test, preds)
+        acc_list.append(acc)
         simple = 1 / np.sqrt(dep)
         score = 2 * abs(acc - 0.5)
         product = score * simple
@@ -425,7 +427,7 @@ def can_simplicity(X, y, flag, verbose=False, plot_tree=False, max_max_depth=6, 
     if plot_tree:
         fig, ax = plt.subplots(figsize=(10+5*max_prod_id, 10+5*max_prod_id))
         xgb.plot_tree(models[max_prod_id], ax=ax)
-        plt.title(f'Can*Simplicity best tree (depth= {max_prod_id+1}, accuracy={can_list[max_prod_id]:.3})')
+        plt.title(f'Can*Simplicity best tree (depth= {max_prod_id+1}, accuracy={acc_list[max_prod_id]:.3})')
         plt.show();
 
     if verbose:
