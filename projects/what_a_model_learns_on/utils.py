@@ -380,7 +380,7 @@ def can_simplicity(X, y, flag, verbose=False, plot_tree=False, max_max_depth=6, 
         idx_to_keep_bool = X.index.isin(idx_to_keep) == True
         X = X[idx_to_keep_bool]
         y = y[idx_to_keep_bool]
-        flag = flag_temp[idx_to_keep_bool]
+        flag = flag[idx_to_keep_bool]
 
     X_train, X_test, y_train, y_test = train_test_split(
         X,
