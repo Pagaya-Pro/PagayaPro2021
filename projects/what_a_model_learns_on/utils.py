@@ -337,7 +337,7 @@ def should(X, y, flag, regular=0, verbose=False):
     return g / gmean(normalize)
 
 
-def can_simplicity(X, y, flag, balanced=True, verbose=False, plot_tree=False, max_max_depth=6, seed=42, test_size=0.33):
+def can_simplicity(X, y, flag, verbose=False, plot_tree=False, max_max_depth=6, seed=42, test_size=0.33):
     """
     This function calculates the "can*simplicity" score we came up with. Given a flag feature and the training dataset,
     the "can*simplicity" score intends to measure how easy it is to predict the flag from the data.
@@ -369,6 +369,19 @@ def can_simplicity(X, y, flag, balanced=True, verbose=False, plot_tree=False, ma
     can_list = []
     products = []
     models = []
+
+    zeros = X[flag == 0].index
+    ones = X[flag == 1].index
+    if len(zeros) != len(ones):
+        if len(zeros) < len(ones):
+            idx_to_keep = equalize(zeros, ones, seed)
+        else:
+            idx_to_keep = equalize(ones, zeros, seed)
+        idx_to_keep_bool = X.index.isin(idx_to_keep) == True
+        X = X[idx_to_keep_bool]
+        y = y[idx_to_keep_bool]
+        flag = flag[idx_to_keep_bool]
+
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         flag,
@@ -390,9 +403,7 @@ def can_simplicity(X, y, flag, balanced=True, verbose=False, plot_tree=False, ma
         preds = np.zeros(len(probs))
         preds[probs > 0.5] = 1
 
-        acc = bas(y_test, preds)
-        if not balanced:
-            acc = accuracy_score(y_test, preds)
+        acc = accuracy_score(y_test, preds)
         simple = 1 / np.sqrt(dep)
         score = 2 * abs(acc - 0.5)
         product = score * simple
@@ -412,9 +423,9 @@ def can_simplicity(X, y, flag, balanced=True, verbose=False, plot_tree=False, ma
     max_score = can_list[max_score_id]
 
     if plot_tree:
-        fig, ax = plt.subplots(figsize=(8+2*max_prod_id, 8+2*max_prod_id))
+        fig, ax = plt.subplots(figsize=(8+3*max_prod_id, 8+3*max_prod_id))
         xgb.plot_tree(models[max_prod_id], ax=ax)
-        plt.title(f'Can*Simplicity tree (depth= {max_prod_id+1}, accuracy={can_list[max_prod_id]}')
+        plt.title(f'Can*Simplicity best tree (depth= {max_prod_id+1}, accuracy={can_list[max_prod_id]})')
         plt.show();
 
     if verbose:
