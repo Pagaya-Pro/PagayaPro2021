@@ -563,10 +563,12 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
         can_explainer = shap.Explainer(can_model)
         can_shap_values = pd.DataFrame(can_explainer(X).values, columns=X.columns,
                                       index=X.index).abs()
-        can_agg_shap = can_shap_values.divide(can_shap_values.sum(axis=1), axis=0).sort_values(ascending=True).to_numpy()
-        difficulty = KneeLocator(range(1, len(can_agg_shap) + 1), can_agg_shap, curve='concave', direction='increasing').knee
+        can_agg_shap = can_shap_values.divide(can_shap_values.sum(axis=1), axis='rows').mean(axis='rows').sort_values(ascending=False).to_numpy()
+        difficulty = KneeLocator(range(1, len(can_agg_shap) + 1), can_agg_shap, curve='convex',
+                                 direction='decreasing').knee
         if difficulty == 1 or difficulty == len(can_agg_shap):
-            difficulty = KneeLocator(1, range(len(can_agg_shap) + 1), can_agg_shap, curve='convex', direction='increasing').knee
+            difficulty = KneeLocator(1, range(len(can_agg_shap) + 1), can_agg_shap, curve='concave',
+                                     direction='increasing').knee
 
     elif len(accs) == 1:
         difficulty = 1
@@ -606,10 +608,10 @@ def can_difficulty(X, flag):
     can_explainer = shap.Explainer(can_model)
     can_shap_values = pd.DataFrame(can_explainer(X).values, columns=X.columns,
                                   index=X.index).abs()
-    can_agg_shap = can_shap_values.divide(can_shap_values.sum(axis=1), axis=0).sort_values(ascending=True).to_numpy()
-    difficulty = KneeLocator(range(1, len(can_agg_shap) + 1), can_agg_shap, curve='concave', direction='increasing').knee
+    can_agg_shap = can_shap_values.divide(can_shap_values.sum(axis=1), axis='rows').mean(axis='rows').sort_values(ascending=False).to_numpy()
+    difficulty = KneeLocator(range(1, len(can_agg_shap) + 1), can_agg_shap, curve='convex', direction='decreasing').knee
     if difficulty == 1 or difficulty == len(can_agg_shap):
-        difficulty = KneeLocator(1, range(len(can_agg_shap) + 1), can_agg_shap, curve='convex',
+        difficulty = KneeLocator(1, range(len(can_agg_shap) + 1), can_agg_shap, curve='concave',
                                  direction='increasing').knee
 
     # Return results
