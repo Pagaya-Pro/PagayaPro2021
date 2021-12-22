@@ -543,6 +543,7 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
 
     # Calculate Difficulty
     most_important = copy.deepcopy(dependent_features)
+    print(f'{len(most_important)} dependent features: {most_important}')
     accs = []
     for i in range(len(dependent_features)):
         dependent_model = xgb.XGBClassifier(n_estimators=20, random_state=42)
@@ -582,3 +583,30 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
 
     # Return results
     return should, can, difficulty
+
+
+def can_difficulty(X, flag):
+    """
+    TEMPORARY for rerunning flags
+    :param X:
+    :param y:
+    :param flag:
+    :param calc_can:
+    :return:
+    """
+    # Calculate Can
+    can_model = xgb.XGBClassifier(n_estimators=7, random_state=111)
+    can_model.fit(X, flag)
+    proba = can_model.predict_proba(X)[:, 1]
+    fpr, tpr, thresholds = metrics.roc_curve(flag, proba, drop_intermediate=False)
+    can = bas(flag, (proba > thresholds[np.argmax(tpr - fpr)]).astype(int), adjusted=False)
+
+    # Calculate Difficulty of 0 dependent features.
+    can_explainer = shap.Explainer(can_model)
+    can_shap_values = pd.DataFrame(can_explainer(X).values, columns=X.columns,
+                                  index=X.index).abs()
+    can_agg_shap = can_shap_values.divide(can_shap_values.sum(axis=1), axis=0).sort_values(ascending=True).to_numpy()
+    difficulty = KneeLocator(range(1, len(can_agg_shap) + 1), can_agg_shap, curve='concave', direction='increasing').knee
+
+    # Return results
+    return can, difficulty
