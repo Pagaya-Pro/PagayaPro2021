@@ -523,11 +523,12 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
     should = (df_flag_shap_values.flag.abs() / df_flag_shap_values.abs().sum(axis=1)).mean()
 
     # Calculate Can
-    model = xgb.XGBClassifier(n_estimators=7, random_state=111)
-    model.fit(X, flag)
-    proba = model.predict_proba(X)[:, 1]
+    can_model = xgb.XGBClassifier(n_estimators=7, random_state=111)
+    can_model.fit(X, flag)
+    proba = can_model.predict_proba(X)[:, 1]
     fpr, tpr, thresholds = metrics.roc_curve(flag, proba, drop_intermediate=False)
     can = bas(flag, (proba > thresholds[np.argmax(tpr - fpr)]).astype(int), adjusted=False)
+
 
     # Calculate Difficulty
     most_important = copy.deepcopy(dependent_features)
@@ -547,7 +548,13 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
         most_important.remove(drop_feature)
 
     if len(accs) == 0:
-        difficulty = np.nan
+        can_explainer = shap.Explainer(can_model)
+        can_shap_values = pd.DataFrame(can_explainer(X).values, columns=X.columns,
+                                      index=X.index).abs()
+        can_agg_shap = can_shap_values.divide(can_shap_values.sum(axis=1), axis=0).sort_values(ascending=True).to_numpy()
+        difficulty = KneeLocator(range(1, len(can_agg_shap) + 1), can_agg_shap, curve='concave', direction='increasing').knee
+
+
     elif len(accs) == 1:
         difficulty = 1
     elif len(accs) == 2:
@@ -556,9 +563,9 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
         else:
             difficulty = 2
     else:
-        difficulty = KneeLocator(range(1, len(accs) + 1), accs, curve='concave', direction='decreasing').knee
+        difficulty = KneeLocator(range(1, len(accs) + 1), accs[::-1], curve='concave', direction='increasing').knee
         if difficulty == 1 or difficulty == len(accs):
-            difficulty = KneeLocator(1, range(len(accs) + 1), accs, curve='convex', direction='decreasing').knee
+            difficulty = KneeLocator(1, range(len(accs) + 1), accs[::-1], curve='convex', direction='increasing').knee
         elif difficulty is None:  # All accuracies are equal
             difficulty = 1
 
