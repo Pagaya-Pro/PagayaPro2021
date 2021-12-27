@@ -9,14 +9,7 @@ import os
 import pandas as pd
 import math
 from file_utils import parquet_to_dataframe
-import s3fs
-from joblib import delayed
-from joblib import Parallel
-from tqdm import tqdm
-import psutil
 import utils
-import s3fs
-import psutil
 import pickle
 
 
@@ -34,7 +27,7 @@ class Train_model_pipeline():
             try:
                 target_data = parquet_to_dataframe(target_path)
             except:
-                print('target data not split to folder - reading from parquet')
+                print('target data not split to folders - reading from parquet')
                 target_data = pd.read_parquet(target_path)
 
             try:
@@ -123,16 +116,6 @@ class Train_model_pipeline():
         self.predictions = model.predict(dtest)
 
         self.models.append((model, columns)) if save_model else print('Model not save for later comparison')
-
-    def predict(self, X_test=None):
-
-        dtest = None
-        if type(X_test) == type(None):
-            return (self.predictions)
-        else:
-            dtest = xgb.DMatrix(X_test, nthread=-1)
-
-        return self.model.predict(dtest)
 
     def calc_yearly_irr(self, cashflows):
         irrs = cashflows.swifter.apply(lambda x: npf.irr(x[x.notna()]), axis=1)
