@@ -304,11 +304,13 @@ def calc_irr(cashflows, info_date=None):
     return cashflows_payments.swifter.apply(npf.irr, axis=1).swifter.apply(lambda irr: ((irr + 1) ** 12 - 1) * 100,
                                                                            axis=1).fillna(-100)
 
-def should(X, y, flag, regular=0, verbose=False):
+def xgb_should(X, y, flag, regular=0, verbose=False):
     """
-    This function calculates the "should" score we came up with. Given a flag feature and the target vector,
+    This function calculates the XGB-based "should" score. Given a flag feature and the target vector,
     the "should" score intends to measure how useful it is to use the flag as a feature when training a
     model to predict the target.
+    :param X:
+        The model's features. This isn't necessary for the function but we keep this parameter for consistency.
     :param y:
         The target vector.
     :param flag:
@@ -337,9 +339,9 @@ def should(X, y, flag, regular=0, verbose=False):
     return g / gmean(normalize)
 
 
-def can_simplicity(X, y, flag, verbose=False, plot_tree=False, max_max_depth=6, seed=42, test_size=0.33):
+def xgb_can_simplicity(X, y, flag, verbose=False, plot_tree=False, max_max_depth=6, seed=42, test_size=0.33):
     """
-    This function calculates the "can*simplicity" score we came up with. Given a flag feature and the training dataset,
+    This function calculates the XGB-based "can*simplicity" score. Given a flag feature and the training dataset,
     the "can*simplicity" score intends to measure how easy it is to predict the flag from the data.
     The function trains a single XGBoost tree for each depth from 1 to max_max_depth, train to predict to flag
     from the data. For each model, it calculates an accuracy score and normalizes it by the tree's depth.
@@ -352,8 +354,8 @@ def can_simplicity(X, y, flag, verbose=False, plot_tree=False, max_max_depth=6, 
         A column the same length as the data with 0s and 1s.
     :param verbose:
         If True, the function prints out the results for each model it trains.
-    :param plot_trees:
-        If True, the functions prints out the decision tree for each model.
+    :param plot_trees
+        If True, the function prints out the winning decision tree.
     :param max_max_depth:
         The upper bound for the max_depth of the models the function builds.
     :param seed:
@@ -415,9 +417,9 @@ def can_simplicity(X, y, flag, verbose=False, plot_tree=False, max_max_depth=6, 
         if verbose:
             print(f'Depth: {dep}')
             print(f'\tAccuracy: {acc}')
-            print(f'\tNormed accuracy: {score}')
+            print(f'\tAdjusted accuracy: {score}')
             print(f'\tSimplicity: {simple}')
-            print(f'\tScore*Simplicity: {product}')
+            print(f'\tScore: {product}')
 
     max_prod_id = np.argmax(products)
     max_prod = products[max_prod_id]
@@ -431,9 +433,13 @@ def can_simplicity(X, y, flag, verbose=False, plot_tree=False, max_max_depth=6, 
         plt.show();
 
     if verbose:
-        print(
-            f'Best can*simplicity score: {max_prod:.4f} for depth: {max_prod_id + 1} and can score {can_list[max_prod_id]:.4f}')
-        print(f'Best can score: {max_score:.4f} for depth: {max_score_id + 1}')
+        print('Best can*simplicity score:')
+        print(f'\tScore: {max_prod:.3f}')
+        print(f'\tDepth: {max_prod_id + 1}')
+        print(f'\tCan score: {can_list[max_prod_id]:.3f}')
+        print('Best can score:')
+        print(f'\tScore: {max_score:.3f}')
+        print(f'Depth: {max_score_id + 1}')
 
     res = {
         'score': max_prod,
@@ -442,12 +448,57 @@ def can_simplicity(X, y, flag, verbose=False, plot_tree=False, max_max_depth=6, 
     }
     return res
 
-def should_can_simple(X, y, flag, regular=0, max_max_depth=6, seed=42, test_size=0.33):
-    s = should(X, y, flag, regular)
-    c = can_simplicity(X, y, flag, max_max_depth=max_max_depth, seed=seed, test_size=test_size)['score']
+def xgb_score(X, y, flag, regular=0, max_max_depth=6, seed=42, test_size=0.33):
+    """
+    Calculates the XGB-based score.
+    :param X:
+        The training data.
+    :param y:
+        The model's labels
+    :param flag:
+        A column the same length as the data with 0s and 1s.
+    :param regular:
+        This is a regularization parameter.
+        It should have the same value as the regularization parameter of the actual model that will be used to predict y.
+        The default value is 0.
+    :param verbose:
+        If True, the function prints out the results for each model it trains.
+    :param plot_trees
+        If True, the function prints out the winning decision tree.
+    :param max_max_depth:
+        The upper bound for the max_depth of the models the function builds.
+    :param seed:
+        Random state seed.
+    :param test_size:
+        The test size when splitting the data.
+    :return:
+        The score.
+    """
+    s = xgb_should(X, y, flag, regular=regular)
+    c = xgb_can_simplicity(X, y, flag, max_max_depth=max_max_depth, seed=seed, test_size=test_size)['score']
     return s*c
 
 def compare_preds(X, y, flag, model=None, alpha=0.01):
+    """
+    The function compares the predictions of a model for two populations defined by the flag.
+    If a model isn't provided, the function trains a model using default XGB parameters.
+    :param X:
+        The training data.
+    :param y:
+        The model's labels
+    :param flag:
+        A column the same length as the data with 0s and 1s.
+    :param model:
+        The model to use to create the predictions to be compared.
+        If a model isn't provided, the function trains one using default parameters.
+    :param alpha:
+        The confidence level of the statistical tests.
+    :return:
+        The function returns a dict with the following keys:
+            Diff: The difference of the population means.
+            T-test: Whether the null hypothesis that the means of the populations are the same can be rejected or not.
+            KS: Whether the null hypothesis that the populations have the same distribution can be rejected or not.
+    """
     if not model:
         model = xgb.XGBRegressor(
             random_state=seed,
@@ -470,7 +521,7 @@ def compare_preds(X, y, flag, model=None, alpha=0.01):
 
 
 
-def double_r(X, y, flag, model=None, seed=42, n_estimators=20, max_depth=6, plot_acc=False):
+def r2c_score(X, y, flag, model=None, seed=42, n_estimators=20, max_depth=6, plot_acc=False):
     """
     :param X: Model features
     :param y: Model labels
@@ -518,7 +569,7 @@ def double_r(X, y, flag, model=None, seed=42, n_estimators=20, max_depth=6, plot
     return np.mean(res)
 
 
-def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
+def shap_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
     # Find dependent features
     dependent_features = get_dependent_features(X, flag, acc_thld=acc_thld, dec_thld=dec_thld)
     if print_dependent:
@@ -590,7 +641,7 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
     return should, can, difficulty
 
 
-def can_difficulty(X, flag):
+def shap_can_difficulty(X, flag):
     """
     TEMPORARY for rerunning flags
     :param X:
