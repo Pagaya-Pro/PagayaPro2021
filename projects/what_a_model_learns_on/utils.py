@@ -622,6 +622,8 @@ def shap_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
         if difficulty == 1 or difficulty == len(can_agg_shap):
             difficulty = KneeLocator(1, range(len(can_agg_shap) + 1), can_agg_shap, curve='concave',
                                      direction='decreasing').knee
+        print(can_agg_shap[:difficulty])
+
 
     elif len(accs) == 1:
         difficulty = 1
@@ -666,6 +668,6 @@ def shap_can_difficulty(X, flag):
     if difficulty == 1 or difficulty == len(can_agg_shap):
         difficulty = KneeLocator(1, range(len(can_agg_shap) + 1), can_agg_shap, curve='concave',
                                  direction='decreasing').knee
-
+    print(can_agg_shap[:difficulty])
     # Return results
     return can, difficulty
