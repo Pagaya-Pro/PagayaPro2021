@@ -561,8 +561,6 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
         drop_feature = df_shap_values.idxmin()
         most_important.remove(drop_feature)
 
-    # Calculate difficulty score using elbow point
-    # Edge cases handling
     if len(accs) == 0:
         can_explainer = shap.Explainer(can_model)
         can_shap_values = pd.DataFrame(can_explainer(X).values, columns=X.columns,
@@ -574,6 +572,8 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
             difficulty = KneeLocator(1, range(len(can_agg_shap) + 1), can_agg_shap, curve='concave',
                                      direction='decreasing').knee
         print(can_agg_shap[:difficulty])
+
+
     elif len(accs) == 1:
         difficulty = 1
     elif len(accs) == 2:
@@ -581,7 +581,6 @@ def SHAP_score(X, y, flag, acc_thld=0.75, dec_thld=0.8, print_dependent=False):
             difficulty = 1
         else:
             difficulty = 2
-    # Find elbow point
     else:
         difficulty = KneeLocator(range(1, len(accs) + 1), accs[::-1], curve='concave', direction='increasing').knee
         if difficulty == 1 or difficulty == len(accs):
